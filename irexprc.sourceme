@@ -1,0 +1,5 @@
+export IRDIR=${HOME}/cvsandbox/Aviso
+export IRRT=$IRDIR/Runtime
+export IRDATA=$IRDIR/Data
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$IRRT
+export IR_TraceDir=$IRDATA
