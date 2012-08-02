@@ -1,3 +1,0 @@
-This compiler pass should be built against LLVM.  It belongs in lib/Transforms/Scalar.
-
-Instructions on building LLVM passes are on the LLVM website.
