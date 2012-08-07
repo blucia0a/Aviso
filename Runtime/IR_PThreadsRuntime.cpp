@@ -142,6 +142,7 @@ std::set<StateMachineFactory *> *Factories;
 void GetThreadData();
 void terminationHandler(int signum);
 void _get_backtrace(void **baktrace,int addrs);
+void newEventFreeList();
 /*Forward Declarations*/
 
 
@@ -443,6 +444,10 @@ extern "C"{
     pthread_mutex_init(&MachinesLock, NULL);
     Machines = new std::set<StateMachine *>(); 
     Factories = new std::set<StateMachineFactory *>(); 
+  
+    t->eventFreeList = (TraceEvent **)malloc(sizeof(TraceEvent *) * EFL_SIZE);
+    newEventFreeList();
+    t->bt = new Backtrace();
     
     pthread_mutex_init(&outputLock,NULL);
     char outFileName[512];
@@ -463,6 +468,18 @@ extern "C"{
     }
 
     loadPlugins(Factories,"IR_Plugins");
+  
+    t->myFactories = new std::set<StateMachineFactory *>();
+    std::set<StateMachineFactory *>::iterator it, et;
+    for(it = Factories->begin(), et = Factories->end(); it != et; it++){
+
+      t->myFactories->insert((*it));
+
+    }
+
+    t->involvedBacktraces = 
+      new std::tr1::unordered_set<Backtrace *, BTHash, LooseBTEquals>();
+    loadPluginConfigs(t->involvedBacktraces,"IR_PluginConfs");
 
   }
 
@@ -553,6 +570,7 @@ void thdDestructor(void *vt){
 
 void GetThreadData(){
 
+
   tlsKey = (pthread_key_t *)malloc( sizeof( pthread_key_t ) );
 
   pthread_key_create( tlsKey, thdDestructor );
@@ -568,6 +586,8 @@ void GetThreadData(){
   t->bt = new Backtrace();
 
   t->mytid = GetTid(); 
+  
+  fprintf(stderr,"Thread %lu created %p\n",(unsigned long)pthread_self(), t->myRPB);    
   
   pthread_mutex_lock(&allThreadsLock);
   allThreads[t->mytid] = pthread_self();

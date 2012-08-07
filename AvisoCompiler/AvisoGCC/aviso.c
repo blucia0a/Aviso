@@ -43,19 +43,34 @@ static unsigned aviso_exec(void)
     basic_block bb;
     gimple stmt;
     gimple_stmt_iterator gsi;
+    
+    init_new_func();
 
     FOR_EACH_BB(bb)
       for (gsi=gsi_start_bb(bb); !gsi_end_p(gsi); gsi_next(&gsi)) {
 
-          stmt = gsi_stmt(gsi);
+        //fprintf(stderr,"Getting stmt from gsi...\n");
+        stmt = gsi_stmt(gsi);
+        //fprintf(stderr,"Got stmt from gsi.  It has %d ops\n", gimple_num_ops(stmt));
 
+        if( gimple_num_ops(stmt) > 0 ){
           for (i=0; i<gimple_num_ops(stmt); ++i){
          
+            //fprintf(stderr,"Inserting Synth\n");
             my_insert_synth_ev(bb,&gsi,stmt);
+            //fprintf(stderr,"Inserted Synth\n");
 
           }
 
+        }else{
+          //fprintf(stderr,"0 op stmt.  Moving on.\n");
+        }
+
+        //fprintf(stderr,"Finished Loop iteration.\n");
+
       }
+      
+    //fprintf(stderr,"Finished foreach.\n");
 
     return 0;
 }
@@ -82,10 +97,9 @@ int plugin_init(struct plugin_name_args   *info,  /* Argument infor */
        return -1; /* Incorrect version of gcc */
 
     pass.pass = &aviso_pass.pass;
-    pass.reference_pass_name = "ssa";
-    pass.ref_pass_instance_number = 1;
+    pass.reference_pass_name = "cfg";
+    pass.ref_pass_instance_number = 0;
     pass.pos_op = PASS_POS_INSERT_AFTER;
-
 
 
     /* Tell gcc we want to be called after the first SSA pass */

@@ -19,7 +19,7 @@ void Aviso_Constructor(){
   ThreadData *t = (ThreadData *)malloc( sizeof(ThreadData) );
   
   pthread_setspecific(*tlsKey,(void*)t);
-
+  
   initializeCorrectRunDump();
 
   btbuff = (void**)calloc(100,sizeof(void*));
