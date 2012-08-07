@@ -17,4 +17,4 @@ aviso.so: aviso.o myexpand.o
 	$(GCC) $(CFLAGS) -std=c++11 -lstdc++ -shared -undefined dynamic_lookup $^ -o $@
 
 clean:
-	-rm aviso.o myexpand.o
+	-rm aviso.o myexpand.o aviso.so
