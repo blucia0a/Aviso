@@ -67,6 +67,8 @@ static unsigned aviso_exec(void)
           for (i=0; i<gimple_num_ops(stmt); ++i){
          
             my_expand_location(stmt);
+            my_insert_synth_ev(bb,&gsi,stmt);
+
           }
 
       }
@@ -85,6 +87,7 @@ static struct gimple_opt_pass aviso_pass =
 };
 
 
+
 /* Return 0 on success or error code on failure */
 int plugin_init(struct plugin_name_args   *info,  /* Argument infor */
                 struct plugin_gcc_version *ver)   /* Version of GCC */
@@ -98,6 +101,8 @@ int plugin_init(struct plugin_name_args   *info,  /* Argument infor */
     pass.reference_pass_name = "ssa";
     pass.ref_pass_instance_number = 1;
     pass.pos_op = PASS_POS_INSERT_AFTER;
+
+
 
     /* Tell gcc we want to be called after the first SSA pass */
     register_callback("aviso", PLUGIN_PASS_MANAGER_SETUP, NULL, &pass);
