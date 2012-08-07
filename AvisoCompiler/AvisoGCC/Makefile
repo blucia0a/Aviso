@@ -7,14 +7,14 @@ CFLAGS+= -I$(GCCPLUGINS_DIR)/include -fPIC -O2 -g
 
 all: aviso.so
 
-myexpand.o: myexpand.c
+myexpand.o: myexpand.cpp
 	$(GXX) $(CFLAGS) -c $^ -o $@
 
 aviso.o: aviso.c
 	$(GCC) $(CFLAGS) -c $^ -o $@
 
 aviso.so: aviso.o myexpand.o
-	$(GCC) $(CFLAGS) -shared -undefined dynamic_lookup $^ -o $@
+	$(GCC) $(CFLAGS) -std=c++11 -lstdc++ -shared -undefined dynamic_lookup $^ -o $@
 
 clean:
 	-rm aviso.o myexpand.o
