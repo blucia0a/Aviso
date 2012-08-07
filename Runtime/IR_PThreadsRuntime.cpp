@@ -157,7 +157,7 @@ int GetTid(){
     }
   }
  
-  fprintf(stderr,"Ran out of thread IDs!\n");
+  fprintf(stderr,"[AVISO] Ran out of thread IDs!\n");
   exit(1);
 
 }
@@ -184,12 +184,12 @@ void thdSigEnd(int signum){
 
     if( t->alreadyDumped ){ return; }
 
-    fprintf(stderr,"Thread %lu Received SIGUSR1 -- Dumping RPB\n",(unsigned long)pthread_self());
+    //fprintf(stderr,"[AVISO] Thread %lu Received SIGUSR1 -- Dumping RPB\n",(unsigned long)pthread_self());
 
     t->alreadyDumped = true;
     if (pthread_mutex_trylock(&outputLock) != 0){
       /*Note: If the lock acquire can't proceed, it must be because this thread alread holds the lock*/
-      fprintf(stderr,"Thread %lu tried acquiring its lock again!\n",(unsigned long)pthread_self());
+      //fprintf(stderr,"[AVISO] Thread %lu tried acquiring its lock again!\n",(unsigned long)pthread_self());
     }
 
     FILE *f = getRPBFile();
@@ -198,7 +198,7 @@ void thdSigEnd(int signum){
     if( ret != 0 ){
       fprintf(stderr,"[AVISO] There was an error flushing the RPB\n");
     } 
-    fprintf(stderr,"Thread %lu Done Dumping RPB\n",(unsigned long)pthread_self());
+    //fprintf(stderr,"Thread %lu Done Dumping RPB\n",(unsigned long)pthread_self());
 
     numDumped++;
     pthread_mutex_unlock(&outputLock);
@@ -235,7 +235,7 @@ void terminationHandler(int signum){
       /*If SIGUSR1 handling hasn't dumped my RPB already, I will dump it here*/
       if( !t->alreadyDumped ){
 
-        fprintf(stderr,"Thread %lu Was Handling Second Signal %d -- Dumping RPB\n",(unsigned long)pthread_self(),signum);
+        //fprintf(stderr,"Thread %lu Was Handling Second Signal %d -- Dumping RPB\n",(unsigned long)pthread_self(),signum);
         /*Concurrency with self: can't be holding lock because alreadyDumped would be true*/
         t->alreadyDumped = true;
         pthread_mutex_lock(&outputLock);
@@ -245,7 +245,7 @@ void terminationHandler(int signum){
         if( ret != 0 ){
           fprintf(stderr,"[AVISO] There was an error flushing the RPB\n");
         } 
-        fprintf(stderr,"Thread %lu Done Dumping RPB\n",(unsigned long)pthread_self());
+        //fprintf(stderr,"Thread %lu Done Dumping RPB\n",(unsigned long)pthread_self());
 
         pthread_mutex_unlock(&outputLock);
        
@@ -255,13 +255,13 @@ void terminationHandler(int signum){
       sigset_t empty;
       sigset_t pending;
       sigemptyset( &empty );
-      fprintf(stderr,"Thread %lu is Waiting\n",(unsigned long)pthread_self());
+      //fprintf(stderr,"Thread %lu is Waiting\n",(unsigned long)pthread_self());
       while( !finishedFatalSignal ){ 
 
         /*Wait for the other guy handling a fatal signal to exit... (could it be me?)*/ 
         sigpending(&pending);
         if( sigismember(&pending, SIGUSR1) ){
-          fprintf(stderr,"Thread %lu was waiting and received SIGUSR1\n");
+          //fprintf(stderr,"Thread %lu was waiting and received SIGUSR1\n");
           pthread_mutex_lock(&outputLock);
           numDumped++;
           pthread_mutex_unlock(&outputLock);
@@ -269,7 +269,7 @@ void terminationHandler(int signum){
 
       }
 
-      fprintf(stderr,"Thread %lu is Done Waiting\n",(unsigned long)pthread_self());
+      //fprintf(stderr,"Thread %lu is Done Waiting\n",(unsigned long)pthread_self());
       return;
 
     }else{
@@ -288,7 +288,7 @@ void terminationHandler(int signum){
 
       if( allThreads[i] == pthread_self() ){
 
-        fprintf(stderr,"Thread %lu Was Handling First Signal %d -- Dumping RPB\n",(unsigned long)pthread_self(),signum);
+        //fprintf(stderr,"Thread %lu Was Handling First Signal %d -- Dumping RPB\n",(unsigned long)pthread_self(),signum);
         FILE *f = getRPBFile();
         pthread_mutex_lock(&outputLock);
         t->myRPB->Dump( f );
@@ -296,14 +296,14 @@ void terminationHandler(int signum){
         if( ret != 0 ){
           fprintf(stderr,"[AVISO] There was an error flushing the RPB\n");
         } 
-        fprintf(stderr,"Thread %lu Done Dumping RPB\n",(unsigned long)pthread_self());
+        //fprintf(stderr,"Thread %lu Done Dumping RPB\n",(unsigned long)pthread_self());
 
         numDumped++;
         pthread_mutex_unlock(&outputLock);
         
       }else{
 
-        fprintf(stderr,"Thread %lu Sent Dump Signal to %lu\n",(unsigned long)pthread_self(),(unsigned long)allThreads[i]);
+        //fprintf(stderr,"Thread %lu Sent Dump Signal to %lu\n",(unsigned long)pthread_self(),(unsigned long)allThreads[i]);
         int curNum = numDumped;
         int ret = pthread_kill(allThreads[i],SIGUSR1);
         totalThreads++;
@@ -328,7 +328,7 @@ void terminationHandler(int signum){
             pthread_mutex_lock(&outputLock); 
             if( numDumped > curNum ){
               pthread_mutex_unlock(&outputLock); 
-              fprintf(stderr,"Thread %lu came back from dumping!  It is done now!\n",(unsigned long)allThreads[i]);
+              //fprintf(stderr,"Thread %lu came back from dumping!  It is done now!\n",(unsigned long)allThreads[i]);
               break;
             }
             pthread_mutex_unlock(&outputLock); 
@@ -352,7 +352,7 @@ void terminationHandler(int signum){
 
     if( sigSEGVSaver.sa_handler != SIG_DFL &&
         sigSEGVSaver.sa_handler != SIG_IGN){
-      fprintf(stderr,"Thread %lu Calling Program Segv Handler\n",(unsigned long)pthread_self());
+      //fprintf(stderr,"Thread %lu Calling Program Segv Handler\n",(unsigned long)pthread_self());
       (*sigSEGVSaver.sa_handler)(signum);  
     }
         
@@ -361,19 +361,19 @@ void terminationHandler(int signum){
     
     if( sigTERMSaver.sa_handler != SIG_DFL &&
         sigTERMSaver.sa_handler != SIG_IGN){
-      fprintf(stderr,"Thread %lu Calling Program Term Handler\n",(unsigned long)pthread_self());
+      //fprintf(stderr,"Thread %lu Calling Program Term Handler\n",(unsigned long)pthread_self());
       (*sigTERMSaver.sa_handler)(signum);  
     }
 
   }else if( signum == SIGABRT){
     if( sigABRTSaver.sa_handler != SIG_DFL &&
         sigABRTSaver.sa_handler != SIG_IGN){
-      fprintf(stderr,"Thread %lu Calling Program Abort Handler\n",(unsigned long)pthread_self());
+      //fprintf(stderr,"Thread %lu Calling Program Abort Handler\n",(unsigned long)pthread_self());
       (*sigABRTSaver.sa_handler)(signum);  
     }
   }
 
-  fprintf(stderr,"Thread %lu Calling Default handler for signal %d\n",(unsigned long)pthread_self(),signum);
+  //fprintf(stderr,"Thread %lu Calling Default handler for signal %d\n",(unsigned long)pthread_self(),signum);
 
   signal(signum, SIG_DFL);
   if( signum == SIGABRT ){
