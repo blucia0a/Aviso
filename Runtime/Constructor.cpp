@@ -15,10 +15,15 @@ void Aviso_Constructor(){
   tlsKey = (pthread_key_t *)malloc( sizeof( pthread_key_t ) );
 
   pthread_key_create( tlsKey, NULL );
+  
 
   ThreadData *t = (ThreadData *)malloc( sizeof(ThreadData) );
   
+  
   pthread_setspecific(*tlsKey,(void*)t);
+    
+  ThreadData *t2 = (ThreadData *)pthread_getspecific(*tlsKey);
+  
   
   initializeCorrectRunDump();
 

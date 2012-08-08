@@ -6,6 +6,6 @@ int IR_Lock(pthread_mutex_t *lock);
 int IR_ThreadExit(void *value_ptr);
 void IR_SyntheticEvent();
 
-void IR_Constructor()__attribute__((constructor));
+void Aviso_Constructor()__attribute__((constructor));
 void IR_Destructor()__attribute__((destructor));
 }

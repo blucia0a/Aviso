@@ -587,14 +587,12 @@ void GetThreadData(){
 
   t->mytid = GetTid(); 
   
-  fprintf(stderr,"Thread %lu created %p\n",(unsigned long)pthread_self(), t->myRPB);    
   
   pthread_mutex_lock(&allThreadsLock);
   allThreads[t->mytid] = pthread_self();
   pthread_mutex_unlock(&allThreadsLock);
   
   t->myRPB = new STQueue();
-  fprintf(stderr,"Thread %lu created %p\n",(unsigned long)pthread_self(), t->myRPB);    
 
   t->myFactories = new std::set<StateMachineFactory *>();
   std::set<StateMachineFactory *>::iterator it, et;

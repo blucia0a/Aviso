@@ -1,7 +1,5 @@
-include ../Makefile.global
-
-CC=gcc-4.7
-CXX=g++-4.7
+CC=gcc
+CXX=g++
 
 OPT = -O3
 DBG = -g
