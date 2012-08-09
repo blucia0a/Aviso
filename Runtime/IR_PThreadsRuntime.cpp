@@ -224,7 +224,6 @@ void terminationHandler(int signum){
 
       /*I am not the first signal handler.  I should hang out and let the other signal handling guy deal with this*/
 
-
       /*First, I need to make sure I'm not prodded by the first signal handler.  I'll dump my RPB here anyway*/
       sigset_t new_set;
       pthread_sigmask(0, NULL, &new_set );
@@ -303,9 +302,9 @@ void terminationHandler(int signum){
         
       }else{
 
-        //fprintf(stderr,"Thread %lu Sent Dump Signal to %lu\n",(unsigned long)pthread_self(),(unsigned long)allThreads[i]);
         int curNum = numDumped;
         int ret = pthread_kill(allThreads[i],SIGUSR1);
+        //fprintf(stderr,"Thread %lu Sent Dump Signal to %lu\n",(unsigned long)pthread_self(),(unsigned long)allThreads[i]);
         totalThreads++;
         if( ret != 0 ){
 
@@ -323,6 +322,7 @@ void terminationHandler(int signum){
           
         }else{
 
+          //fprintf(stderr,"Thread %lu waiting for %lu\n",(unsigned long)pthread_self(),(unsigned long)allThreads[i]);
           while(1){
         
             pthread_mutex_lock(&outputLock); 
@@ -335,6 +335,7 @@ void terminationHandler(int signum){
             usleep(1000);
 
           }
+          //fprintf(stderr,"Thread %lu done waiting for %lu\n",(unsigned long)pthread_self(),(unsigned long)allThreads[i]);
 
         }
  
@@ -352,7 +353,7 @@ void terminationHandler(int signum){
 
     if( sigSEGVSaver.sa_handler != SIG_DFL &&
         sigSEGVSaver.sa_handler != SIG_IGN){
-      //fprintf(stderr,"Thread %lu Calling Program Segv Handler\n",(unsigned long)pthread_self());
+      fprintf(stderr,"Thread %lu Calling Program Segv Handler\n",(unsigned long)pthread_self());
       (*sigSEGVSaver.sa_handler)(signum);  
     }
         
@@ -361,14 +362,14 @@ void terminationHandler(int signum){
     
     if( sigTERMSaver.sa_handler != SIG_DFL &&
         sigTERMSaver.sa_handler != SIG_IGN){
-      //fprintf(stderr,"Thread %lu Calling Program Term Handler\n",(unsigned long)pthread_self());
+      fprintf(stderr,"Thread %lu Calling Program Term Handler\n",(unsigned long)pthread_self());
       (*sigTERMSaver.sa_handler)(signum);  
     }
 
   }else if( signum == SIGABRT){
     if( sigABRTSaver.sa_handler != SIG_DFL &&
         sigABRTSaver.sa_handler != SIG_IGN){
-      //fprintf(stderr,"Thread %lu Calling Program Abort Handler\n",(unsigned long)pthread_self());
+      fprintf(stderr,"Thread %lu Calling Program Abort Handler\n",(unsigned long)pthread_self());
       (*sigABRTSaver.sa_handler)(signum);  
     }
   }
@@ -379,7 +380,6 @@ void terminationHandler(int signum){
   if( signum == SIGABRT ){
     assert(false);
   }
-
   kill(getpid(), signum);
 
 }
@@ -421,7 +421,6 @@ extern "C"{
     sigaction(SIGABRT,&segv_sa,&sigABRTSaver);
     
     signal(SIGUSR1,thdSigEnd); 
-    signal(SIGUSR2,thdSigEnd); 
 
     /*Initialize the array of sequentialized thread IDs*/
     pthread_mutex_init(&allThreadsLock,NULL);
@@ -587,7 +586,6 @@ void GetThreadData(){
 
   t->mytid = GetTid(); 
   
-  
   pthread_mutex_lock(&allThreadsLock);
   allThreads[t->mytid] = pthread_self();
   pthread_mutex_unlock(&allThreadsLock);
@@ -620,4 +618,20 @@ int IR_LockInit(pthread_mutex_t *lock,pthread_mutexattr_t *attr){
   return pthread_mutex_init(lock,attr);
 }
 }
+
+extern "C"{
+void IR_Assert(int expression){
+  
+
+  if( expression == 0 ){
+    fprintf(stderr,"[AVISO] Assertion Failure: Aborting with \"Segmentation Fault\"\n");
+    pthread_kill(pthread_self(),11);
+
+  }
+
+  return;
+
+}
+}
+
 

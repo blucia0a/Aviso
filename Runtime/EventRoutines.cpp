@@ -301,26 +301,6 @@ int IR_Mutex_Destroy(pthread_mutex_t *l){
 
 
 
-extern "C"{
-void IR_Assert(int expression){
-  
-
-  if( expression == 0 ){
-    fprintf(stderr,"[AVISO] Assertion Failure: Aborting\n");
-    void *abt[BTLEN];
-    memset(abt, 0, (BTLEN + 1) * sizeof(void*) );
-    _get_backtrace(abt,BTLEN);
-    Backtrace *nb = new Backtrace(abt); 
-    nb->print(stderr);
-    fprintf(stderr,"\n\n");
-    kill(getpid(),SIGKILL);
-
-  }
-
-  return;
-
-}
-}
 
 
 extern "C"{
