@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <gcc-plugin.h>
 #include <coretypes.h>
 #include <diagnostic.h>
@@ -10,14 +11,17 @@
 #include <set>
 #include <fstream>
 #include <iostream>
+#include <string>
 
 using namespace std;
 
 set< std::pair<std::string, unsigned int> > processed;
 set< std::pair<std::string, unsigned int> > points;
+
 tree synthEv_type;
 tree synthEv_decl;
 gimple synthEv_call;
+
 bool inited = false;
 
 void get_points( set< std::pair<std::string, unsigned int> > &pts ){
@@ -98,12 +102,17 @@ void my_insert_synth_ev(basic_block bb, gimple_stmt_iterator *gsi, gimple stmt){
 
       cgraph_node *synth_ev_decl_node = cgraph_get_create_node(synthEv_decl);
 
+      struct cgraph_edge *e; 
+      if( (e = cgraph_edge(current_fun_decl_node,synthEv_call)) ){
+      
+
       cgraph_create_edge(current_fun_decl_node, 
                        synth_ev_decl_node, 
                        synthEv_call, 
                        compute_call_stmt_bb_frequency(current_function_decl, bb), 
                        bb->loop_depth);
 
+      }
       processed.insert(point);  
   
     }

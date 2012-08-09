@@ -213,10 +213,15 @@ void thdSigEnd(int signum){
 /*This is fucking hairy -- don't change it!*/
 void terminationHandler(int signum){
 
+  fprintf(stderr,"[AVISO] Process %d died with signal %d (Handler Thread: %lu)\n",getpid(),signum,(unsigned long)pthread_self());
+
+  if( tlsKey == NULL ){
+    GetThreadData();
+  }
+
   ThreadData *t = (ThreadData *)pthread_getspecific(*tlsKey);
 
   volatile int totalThreads = 0;
-  fprintf(stderr,"[AVISO] Process %d died with signal %d (Handler Thread: %lu)\n",getpid(),signum,(unsigned long)pthread_self());
 
   if( signum == SIGABRT || signum == SIGSEGV ){
 
@@ -523,7 +528,6 @@ static inline TraceEvent *getFreeEvent(){
 void thdDestructor(void *vt){
 
   ThreadData *t = (ThreadData *)vt;
-  fprintf(stderr,"Thread %lu is ending!\n",pthread_self());
   #if defined(PRINTSTATS)
   fprintf(stderr,"STATS%lu %lu %lu %lu %lu %lu %lu %lu %lu %lu\n", 
                  pthread_self(),
@@ -551,16 +555,16 @@ void thdDestructor(void *vt){
   FILE *f = getRPBFile();
   if( ! t->alreadyDumped ){
 
-    fprintf(stderr,"Thread %lu Dumping RPB\n",(unsigned long)pthread_self());
+    //fprintf(stderr,"Thread %lu Dumping RPB\n",(unsigned long)pthread_self());
     t->alreadyDumped = true;
     pthread_mutex_lock(&outputLock);
-    fprintf(stderr,"Thread %lu Dumping RPB %p\n",(unsigned long)pthread_self(), t->myRPB);
+    //fprintf(stderr,"Thread %lu Dumping RPB %p\n",(unsigned long)pthread_self(), t->myRPB);
     t->myRPB->Dump( f );
     int ret = fflush( f );
     if( ret != 0 ){
-      fprintf(stderr,"[AVISO] There was an error flushing the RPB\n");
+      //fprintf(stderr,"[AVISO] There was an error flushing the RPB\n");
     } 
-    fprintf(stderr,"Thread %lu Done Dumping RPB\n",(unsigned long)pthread_self());
+    //fprintf(stderr,"Thread %lu Done Dumping RPB\n",(unsigned long)pthread_self());
     pthread_mutex_unlock(&outputLock);
 
   }
@@ -568,7 +572,6 @@ void thdDestructor(void *vt){
 }
 
 void GetThreadData(){
-
 
   tlsKey = (pthread_key_t *)malloc( sizeof( pthread_key_t ) );
 

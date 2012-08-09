@@ -33,7 +33,6 @@ extern void _get_backtrace(void **baktrace,int addrs);
 extern "C"{
 void IR_SyntheticEvent(){
 
-
   if(tlsKey == NULL){
     GetThreadData();
   }
