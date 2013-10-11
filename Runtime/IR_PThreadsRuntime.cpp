@@ -396,6 +396,7 @@ extern "C"{
   void IR_Constructor(){
 
 
+    fprintf(stderr,"[AVISO] Running with Aviso enabled\n");
     if( !initialized ){ initialized = true; }else{ return; }
  
     ThreadData *t = (ThreadData *)pthread_getspecific(*tlsKey);

@@ -3,12 +3,13 @@ CXX=g++
 
 OPT = -O3
 DBG = -g
-CXXFLAGS += $(OPT) $(DBG) $(PROF) -Wno-deprecated -fno-omit-frame-pointer -fpermissive
-LDFLAGS += $(OPT) $(DBG) $(PROF) -fno-omit-frame-pointer
-SHARED = -shared -fPIC
+CXXFLAGS += $(OPT) $(DBG) $(PROF) -Wno-deprecated -fno-omit-frame-pointer -fpermissive -march=native
+LDFLAGS += $(OPT) $(DBG) $(PROF) -fno-omit-frame-pointer -march=native
+#SHARED = -shared -fPIC
 
 #Targets
 IRLIB=libIRPTR.so
+STATICIRLIB=libIRPTR.a
 
 #Source Files
 SRCS = \
@@ -35,6 +36,9 @@ EventRoutines.o : EventRoutines.cpp
 
 $(IRLIB): $(OBJS) $(TEMPLATES)
 	$(CXX) -O3 -fpermissive -lcurl -ldl -shared -fPIC -o $(IRLIB) $(OBJS)
+
+$(STATICIRLIB): $(OBJS) $(TEMPLATES)
+	ar rcs $(STATICIRLIB) $(OBJS)
 
 clean:
 	-rm *.o $(IRLIB)

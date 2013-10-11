@@ -1,4 +1,4 @@
 #!/bin/bash
 
-/sampa/home/blucia/cvsandbox/Aviso/Scripts/computePairHistogram $@
+$IRDIR/Scripts/computePairHistogram $@
 exit $?

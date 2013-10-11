@@ -58,7 +58,7 @@ func main(){
   //var failureDetectorArgs = flag.String("fdargs", "", "Specify the arguments to the program's failure detector")
 
   var rpbPath = flag.String("rpbpath", "", "Specify the path to the program's rpb storage location")
-  var fsmCompiler = flag.String("fsmcompiler", "/sampa/home/blucia/cvsandbox/Aviso/Scripts/compile_fsm.sh", "Specify the path to the fsm compiler")
+  var fsmCompiler = flag.String("fsmcompiler", "../Scripts/compile_fsm.sh", "Specify the path to the fsm compiler")
   var fsmDir = flag.String("fsmdir", ".fsms", "Specify the path to the fsms")
 
   flag.Parse()
@@ -80,7 +80,7 @@ func main(){
   myenv := os.Environ()
 
   fmt.Println("Running the start http request")
-  fsmresp, _ := http.Post("http://pango.cs.washington.edu:22221/start", "application/x-www-form-urlencoded", strings.NewReader(""))
+  fsmresp, _ := http.Post("http://localhost:22221/start", "application/x-www-form-urlencoded", strings.NewReader(""))
 
   fsmNameBuf := bytes.NewBufferString("")
 
@@ -255,7 +255,7 @@ func main(){
   }
 
   fmt.Println("Post...")
-  resp, _ := http.Post("http://pango.cs.washington.edu:22221/end", "application/x-www-form-urlencoded", strings.NewReader(v.Encode()))
+  resp, _ := http.Post("http://localhost:22221/end", "application/x-www-form-urlencoded", strings.NewReader(v.Encode()))
   if( resp != nil ){
     fmt.Printf("Response from AvisoServer: %v\n",resp)
   }

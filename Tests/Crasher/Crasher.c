@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <assert.h>
+#include <unistd.h>
 
 #define MAXVAL 100
 
@@ -82,9 +83,9 @@ int main(int argc, char *argv[]){
   pthread_create(&upd,NULL,updaterThread,(void*)shrdPtr);
 
   pthread_join(upd,NULL);
-  pthread_join(acc[0],(void*)&res);
-  pthread_join(acc[1],(void*)&res);
-  pthread_join(acc[2],(void*)&res);
-  pthread_join(acc[3],(void*)&res);
+  pthread_join(acc[0],(void**)&res);
+  pthread_join(acc[1],(void**)&res);
+  pthread_join(acc[2],(void**)&res);
+  pthread_join(acc[3],(void**)&res);
   fprintf(stderr,"Final value of res was %d\n",res); 
 }

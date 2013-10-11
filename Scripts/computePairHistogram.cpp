@@ -1,5 +1,6 @@
 #include <ext/hash_map>
 #include <string>
+#include <string.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -103,7 +104,7 @@ unsigned long normalizeAddr(char *a){
 Event *lineToEvent(string s){
 
   Event *newE = new Event();  
-  const char *str_orig = s.c_str();
+  char *str_orig = (char *)s.c_str();
   char *str = strstr(str_orig,":");
   unsigned long thread = atoi((s.substr(0, str - str_orig)).c_str());
   newE->thread = thread;

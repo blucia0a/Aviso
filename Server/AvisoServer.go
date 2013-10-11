@@ -831,10 +831,10 @@ func init(){
 
 func main(){
 
-  var correctModelFlag = flag.String("model", "/sampa/home/blucia/cvsandbox/Aviso/Tests/PBZip/Experiments/correct.histo", "Specify the path to the correct run model")
-  var fsmGenFlag = flag.String("fsmgen", "/sampa/home/blucia/cvsandbox/Aviso/Scripts/generate_fsms.sh", "Specify the path to the fsm generator")
-  var corrGenFlag = flag.String("corrgen", "/sampa/home/blucia/cvsandbox/Aviso/Scripts/generate_correct_model.sh", "Specify the path to the correct model generator")
-  var ratePlotFlag = flag.String("rateplot", "/sampa/home/blucia/cvsandbox/Aviso/Experiments/current.plots", "Specify where Aviso should dump the plots of failures vs. runs")
+  var correctModelFlag = flag.String("model", "correct.histo", "Specify the path to the correct run model")
+  var fsmGenFlag = flag.String("fsmgen", "../Scripts/generate_fsms.sh", "Specify the path to the fsm generator")
+  var corrGenFlag = flag.String("corrgen", "../Scripts/generate_correct_model.sh", "Specify the path to the correct model generator")
+  var ratePlotFlag = flag.String("rateplot", "current.plots", "Specify where Aviso should dump the plots of failures vs. runs")
   var baselineOnlyFlag = flag.String("baselineonly", "0", "True if Aviso should never send any FSM (for experiments)")
 
   flag.Parse()

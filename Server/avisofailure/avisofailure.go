@@ -3,7 +3,7 @@ package avisofailure
 import (
         "bytes"
         "fmt"
-        "os"
+        //"os"
         "io/ioutil"
         "../fsm"
         "../avisoevent"
@@ -48,7 +48,7 @@ func NewFailure(events *avisoevent.Events) Failure{
   /*Generate a set of FSM descriptors from the temp file*/
   f.Fsms = avisoexternal.GenerateFSMs(tmpFile.Name())
 
-  os.Remove(tmpFile.Name())
+  //os.Remove(tmpFile.Name())
 
   return f
 
