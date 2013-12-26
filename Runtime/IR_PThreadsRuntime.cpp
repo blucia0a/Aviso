@@ -14,8 +14,8 @@
 #include <errno.h>
 #include <assert.h>
 
-#include <ext/hash_map>
-using __gnu_cxx::hash_map;
+#include <map>
+//using __gnu_cxx::hash_map;
 
 /*Stupid little list application function*/
 #include "Applier.h"
@@ -180,11 +180,12 @@ FILE *getRPBFile(){
 void thdSigEnd(int signum){
 
   ThreadData *t = (ThreadData *)pthread_getspecific(*tlsKey);
+  fprintf(stderr,"[AVISO] Thread %lu (Thread %lu) Received a dump signal -- Dumping RPB\n",(unsigned long)pthread_self(),t->mytid);
   if( signum == SIGUSR1 ){
 
     if( t->alreadyDumped ){ return; }
 
-    //fprintf(stderr,"[AVISO] Thread %lu Received SIGUSR1 -- Dumping RPB\n",(unsigned long)pthread_self());
+    fprintf(stderr,"[AVISO] Thread %lu (Thread %lu) Received SIGUSR1 -- Dumping RPB\n",(unsigned long)pthread_self(),t->mytid);
 
     t->alreadyDumped = true;
     if (pthread_mutex_trylock(&outputLock) != 0){
@@ -198,7 +199,7 @@ void thdSigEnd(int signum){
     if( ret != 0 ){
       fprintf(stderr,"[AVISO] There was an error flushing the RPB\n");
     } 
-    //fprintf(stderr,"Thread %lu Done Dumping RPB\n",(unsigned long)pthread_self());
+    fprintf(stderr,"Thread %lu (%lu) Done Dumping RPB\n",(unsigned long)pthread_self(),t->mytid);
 
     numDumped++;
     pthread_mutex_unlock(&outputLock);
@@ -220,7 +221,7 @@ void terminationHandler(int signum){
   }
 
   ThreadData *t = (ThreadData *)pthread_getspecific(*tlsKey);
-
+  fprintf(stderr,"[AVISO] Thread %lu\n",t->mytid);
   volatile int totalThreads = 0;
 
   if( signum == SIGABRT || signum == SIGSEGV ){
@@ -379,7 +380,8 @@ void terminationHandler(int signum){
     }
   }
 
-  //fprintf(stderr,"Thread %lu Calling Default handler for signal %d\n",(unsigned long)pthread_self(),signum);
+  fprintf(stderr,"Thread %lu Calling Default handler for signal %d\n",(unsigned long)pthread_self(),signum);
+  IR_Destructor();
 
   signal(signum, SIG_DFL);
   if( signum == SIGABRT ){
@@ -443,6 +445,11 @@ extern "C"{
 
     /*Set up the main thread's thread meta-data and start the sequence monitor*/
     t->mytid = GetTid();
+
+    pthread_mutex_lock(&allThreadsLock);
+    allThreads[t->mytid] = pthread_self();
+    pthread_mutex_unlock(&allThreadsLock);
+
     t->myRPB = new STQueue();
 
     /*Initialize the avoidance data structures*/
@@ -498,6 +505,22 @@ extern "C"{
     #endif
   
     while(handlingFatalSignal && !finishedFatalSignal){ }
+
+    FILE *f = getRPBFile();
+    ThreadData *t = (ThreadData *)pthread_getspecific(*tlsKey);
+    if( ! t->alreadyDumped ){
+  
+      t->alreadyDumped = true;
+      pthread_mutex_lock(&outputLock);
+      t->myRPB->Dump( f );
+      int ret = fflush( f );
+      if( ret != 0 ){
+        fprintf(stderr,"[AVISO] There was an error flushing the RPB\n");
+      } 
+      pthread_mutex_unlock(&outputLock);
+  
+    }
+
   }
 
 }
@@ -547,7 +570,7 @@ void thdDestructor(void *vt){
    *so they can be reused by other threads
   */
   pthread_mutex_lock(&allThreadsLock);
-  allThreads[t->mytid] = NULL;
+  allThreads[t->mytid] = (pthread_t)NULL;
   pthread_mutex_unlock(&allThreadsLock);
 
   CAS(&(tids[t->mytid]),0,tids[t->mytid]);

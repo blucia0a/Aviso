@@ -21,7 +21,7 @@ extern unsigned long maxMachinesGlobal;
 
 bool Avoidance(){
 
-  ThreadData *t = pthread_getspecific(*tlsKey);
+  ThreadData *t = (ThreadData *)pthread_getspecific(*tlsKey);
 
   int retries = 0;
   

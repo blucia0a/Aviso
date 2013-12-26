@@ -246,7 +246,6 @@ int IR_Join(pthread_t thd,void **value){
 extern "C"{
 int IR_Mutex_Destroy(pthread_mutex_t *l){
 
-
   if(tlsKey == NULL){
     GetThreadData();
   }
@@ -263,24 +262,15 @@ int IR_Mutex_Destroy(pthread_mutex_t *l){
   
   TraceEvent * e; 
 
-  if(dif < SE_INT_MIN && dif > 0 ){
-
-    return pthread_mutex_destroy(l);
-
-  }else{
-
-    e = t->myRPB->GetNextEvent();
-    int a = 0;
-    void **biter = btbuffend;
+  e = t->myRPB->GetNextEvent();
+  int a = 0;
+  void **biter = btbuffend;
+  biter--;
+  while(a < BTLEN && biter != btbuff){
+    e->bt[a++] = *biter;
     biter--;
-    //fprintf(stderr,"BT: ");
-    while(a < BTLEN && biter != btbuff){
-      //fprintf(stderr,"%p ",*biter);
-      e->bt[a++] = *biter;
-      biter--;
-    } 
+  } 
 
-  }
 
   e->actor = t->mytid;
   e->time_ns = ts.tv_nsec + BIL*ts.tv_sec;
@@ -297,8 +287,6 @@ int IR_Mutex_Destroy(pthread_mutex_t *l){
 
 }
 }
-
-
 
 
 

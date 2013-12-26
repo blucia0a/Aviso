@@ -1,14 +1,14 @@
 #include "pin.H"
-#include "stdio.h"
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <utility>
 #include <list>
 #include <tr1/unordered_set>
 #include <set>
-#include <ext/hash_map>
+#include <map>
 #include <sys/time.h>
 
-using __gnu_cxx::hash_map;
 using std::tr1::unordered_set;
 
 PIN_LOCK globalLock;
@@ -70,10 +70,10 @@ class CodePointInfo{
 
 #define THRESH 100 /*100 microsecond window?*/
 
-hash_map< ADDRINT, unsigned long > sharingPCs;
-hash_map< ADDRINT, unsigned long > PCFreq;
+map< ADDRINT, unsigned long > sharingPCs;
+map< ADDRINT, unsigned long > PCFreq;
 
-hash_map< ADDRINT, hash_map<ADDRINT, unsigned long> *> globalFollowGraph;
+map< ADDRINT, map<ADDRINT, unsigned long> *> globalFollowGraph;
 
 class infoPair{
 public:
@@ -94,7 +94,7 @@ class History{
   unsigned long newest;
 
 public:
-  hash_map< ADDRINT, hash_map<ADDRINT, unsigned long> *> followGraph;
+  map< ADDRINT, map<ADDRINT, unsigned long> *> followGraph;
   /*This should do several things:
     1)Add the thing to the history
     2)check the extents of the history to ensure the timespan of the history is less than THRESH; if it is, pop elements from the history until that condition is false
@@ -107,7 +107,7 @@ public:
 History::History(){
 
   this->history = list<infoPair *>();  
-  this->followGraph = hash_map<ADDRINT, hash_map<ADDRINT, unsigned long> *>();
+  this->followGraph = map<ADDRINT, map<ADDRINT, unsigned long> *>();
   struct timeval t;
   gettimeofday(&t,NULL);
   oldest = t.tv_usec;
@@ -148,7 +148,7 @@ void History::add(ADDRINT a){
   /*If a hasn't been accessed yet*/
   if( this->followGraph.find(a) == this->followGraph.end() ){
 
-    this->followGraph[a] = new hash_map<ADDRINT, unsigned long>();  
+    this->followGraph[a] = new map<ADDRINT, unsigned long>();  
 
   }
 
@@ -171,8 +171,8 @@ void History::add(ADDRINT a){
 
 unordered_set< ADDRINT >::iterator sharingPCs_it;
 
-hash_map<unsigned int, unordered_set< THREADID > > memAddrThreadSet;
-hash_map<unsigned int, unordered_set< THREADID > >::iterator memAddrThreadSet_it;
+map<unsigned int, unordered_set< THREADID > > memAddrThreadSet;
+map<unsigned int, unordered_set< THREADID > >::iterator memAddrThreadSet_it;
 
 PIN_LOCK FiniLock;
 
@@ -186,13 +186,13 @@ class thread_t
 {
 
 public:
-  hash_map<unsigned long, unordered_set< ADDRINT > > memAddrPCSet;
+  map<unsigned long, unordered_set< ADDRINT > > memAddrPCSet;
   unsigned long lastICount;
   History *the_histo;
-  hash_map< ADDRINT, unsigned long > *PCFreq;
+  map< ADDRINT, unsigned long > *PCFreq;
   thread_t(){
     the_histo = new History();
-    this->PCFreq = new hash_map<ADDRINT, unsigned long>();
+    this->PCFreq = new map<ADDRINT, unsigned long>();
   }
 
 };
@@ -209,11 +209,11 @@ void insertHash(THREADID thread_id, ADDRINT pc)
 {
   thread_t *cur = get_tls(thread_id);
 
-  GetLock(&globalLock, 1);
+  PIN_GetLock(&globalLock, 1);
   PIN_LockClient();
 
   /*Look through my thread local addresses*/
-  hash_map<unsigned long, unordered_set< ADDRINT > >::iterator b,e;
+  map<unsigned long, unordered_set< ADDRINT > >::iterator b,e;
   for(b = cur->memAddrPCSet.begin(), e = cur->memAddrPCSet.end(); b!=e; b++){
   
     /*If I find that address in the global thread set...*/
@@ -265,7 +265,7 @@ void insertHash(THREADID thread_id, ADDRINT pc)
   }
 
   PIN_UnlockClient();
-  ReleaseLock(&globalLock);
+  PIN_ReleaseLock(&globalLock);
   cur->memAddrPCSet.clear(); 
 
 }
@@ -276,14 +276,14 @@ VOID addMemOp(ADDRINT addr, ADDRINT pc, MemOpType t, THREADID tid)
   thread_t* current_thread = get_tls(tid);
   current_thread->memAddrPCSet[addr].insert(pc);
 
-  GetLock(&globalLock,1);
+  PIN_GetLock(&globalLock,1);
   if( sharingPCs.find(pc) == sharingPCs.end() ){
     /*A isn't a sharing PC -- that is computed at function return time,
      *so return from this function immediately.*/
-    ReleaseLock(&globalLock);
+    PIN_ReleaseLock(&globalLock);
     return;
   }
-  ReleaseLock(&globalLock);
+  PIN_ReleaseLock(&globalLock);
 
   if( current_thread->PCFreq->find(pc) == 
       current_thread->PCFreq->end() ){
@@ -360,21 +360,21 @@ VOID ThreadEnd(THREADID thread_id, const CONTEXT *ctxt, INT32 code, VOID *v)
 
   insertHash(thread_id,0x0); 
 
-  hash_map< ADDRINT, hash_map<ADDRINT, unsigned long> *> followGraph;
+  map< ADDRINT, map<ADDRINT, unsigned long> *> followGraph;
 
   thread_t *cur = get_tls(thread_id);
-  GetLock(&FiniLock,1);
+  PIN_GetLock(&FiniLock,1);
 
-  hash_map< ADDRINT, hash_map<ADDRINT, unsigned long> *>::iterator i,e;
+  map< ADDRINT, map<ADDRINT, unsigned long> *>::iterator i,e;
   for(i = cur->the_histo->followGraph.begin(), e = cur->the_histo->followGraph.end();
       i != e;
       i++){
 
     if( globalFollowGraph.find(i->first) == globalFollowGraph.end() ){
-      globalFollowGraph[i->first] = new hash_map<ADDRINT, unsigned long>();  
+      globalFollowGraph[i->first] = new map<ADDRINT, unsigned long>();  
     }
 
-    hash_map<ADDRINT, unsigned long>::iterator ii,ie;
+    map<ADDRINT, unsigned long>::iterator ii,ie;
     for(ii = i->second->begin(), ie = i->second->end(); ii != ie; ii++){
 
       if(globalFollowGraph[i->first]->find(ii->first) == 
@@ -391,7 +391,7 @@ VOID ThreadEnd(THREADID thread_id, const CONTEXT *ctxt, INT32 code, VOID *v)
     }
   
   }
-  hash_map<ADDRINT, unsigned long>::iterator ii,ie;
+  map<ADDRINT, unsigned long>::iterator ii,ie;
   for(ii = cur->PCFreq->begin(), ie = cur->PCFreq->end(); ii != ie; ii++){
     if( PCFreq.find(ii->first) == PCFreq.end() ){
       PCFreq[ii->first] = ii->second;
@@ -400,7 +400,7 @@ VOID ThreadEnd(THREADID thread_id, const CONTEXT *ctxt, INT32 code, VOID *v)
     }
   }
   
-  ReleaseLock(&FiniLock);
+  PIN_ReleaseLock(&FiniLock);
 
 }
 
@@ -409,15 +409,15 @@ VOID ThreadEnd(THREADID thread_id, const CONTEXT *ctxt, INT32 code, VOID *v)
 VOID Fini(INT32 code, VOID *v)
 {
 
-  char *pairs = getenv("APPAIRS");
+  //char *pairs = getenv("APPAIRS");
   char *freqs = getenv("APFREQS");
-  FILE *pairsf = NULL;
+  //FILE *pairsf = NULL;
   FILE *freqsf = NULL;
-  if( !pairs ){
+  /*if( !pairs ){
     pairsf = stderr;
   }else{
     pairsf = fopen(pairs,"w");
-  }
+  }*/
   
   if( !freqs ){
     freqsf = stderr;
@@ -425,25 +425,25 @@ VOID Fini(INT32 code, VOID *v)
     freqsf = fopen(freqs,"w");
   }
 
-  GetLock(&FiniLock,1);
-  hash_map< ADDRINT, hash_map<ADDRINT, unsigned long> *>::iterator i,e;
+  PIN_GetLock(&FiniLock,1);
+  /*map< ADDRINT, map<ADDRINT, unsigned long> *>::iterator i,e;
   for(i = globalFollowGraph.begin(), e = globalFollowGraph.end();
       i != e;
       i++){
 
-    hash_map<ADDRINT, unsigned long>::iterator ii,ie;
+    map<ADDRINT, unsigned long>::iterator ii,ie;
     for(ii = i->second->begin(), ie = i->second->end(); ii != ie; ii++){
       if(i->first != ii->first){
         fprintf(pairsf,"0x%016lx 0x%016lx %lu\n",i->first,ii->first,ii->second);
       }
     }
   
-  }
+  }*/
   
-  for(hash_map< ADDRINT, unsigned long>::iterator it = PCFreq.begin(); it != PCFreq.end(); it++){	
-    fprintf(freqsf, "0x%016lx %lu\n", it->first, it->second );
+  for(map< ADDRINT, unsigned long>::iterator it = PCFreq.begin(); it != PCFreq.end(); it++){	
+    fprintf(freqsf, "0x%016lx\n", it->first );
   }
-  ReleaseLock(&FiniLock);
+  PIN_ReleaseLock(&FiniLock);
 
 }
 
@@ -451,16 +451,16 @@ VOID Fini(INT32 code, VOID *v)
 int main(int argc, char *argv[])
 {
 
-    globalFollowGraph = hash_map<ADDRINT, hash_map<ADDRINT, unsigned long> *>();
-    PCFreq = hash_map<ADDRINT, unsigned long>();
+    globalFollowGraph = map<ADDRINT, map<ADDRINT, unsigned long> *>();
+    PCFreq = map<ADDRINT, unsigned long>();
 
     // Initialize pin
     PIN_InitSymbols();
     PIN_Init(argc, argv);
 
     // Initialize the lock
-    InitLock(&globalLock);
-    InitLock(&FiniLock);
+    PIN_InitLock(&globalLock);
+    PIN_InitLock(&FiniLock);
 
     // Register Instruction to be called to instrument instructions.
     RTN_AddInstrumentFunction(Routine, 0);

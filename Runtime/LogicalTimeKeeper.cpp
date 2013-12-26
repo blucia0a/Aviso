@@ -27,7 +27,7 @@ void AVISO_TimeTick(){
   }
   char postdata[ len + 20 ];
   memset( postdata, 0, len + 20 );
-  sprintf(postdata,"fsm=%s;&pid=%lu",fsms == NULL ? "baseline" : cursor, mypid);
+  sprintf(postdata,"fsm=%s;&pid=%lu",fsms == NULL ? "baseline" : cursor, (unsigned long)mypid);
 
   fprintf(stderr,"[AVISO] Tick Post: %s\n",postdata);
  

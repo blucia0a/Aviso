@@ -12,7 +12,7 @@ protected:
 
 public:
   virtual enum SMAction run(Backtrace *bt, int tid) = 0;  
-  void dumpBTs(FILE *f){ fprintf(f,IDString); }
+  void dumpBTs(FILE *f){ fprintf(f,"%s",IDString); }
 
 };
 #endif
