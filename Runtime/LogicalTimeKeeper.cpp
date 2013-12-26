@@ -35,7 +35,7 @@ void AVISO_TimeTick(){
   if(curl) {
 
      
-    curl_easy_setopt(curl, CURLOPT_URL, "http://pinga.cs.washington.edu:22221/tick");
+    curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:22221/tick");
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postdata);
  
     /* if we don't provide POSTFIELDSIZE, libcurl will strlen() by

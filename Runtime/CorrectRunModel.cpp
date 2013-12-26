@@ -160,7 +160,7 @@ void sendRPB( ){
     fprintf(stderr,"10\n");
     /* specify target URL, and note that this URL should include a file
      * name, not only a directory */ 
-    const char *url = "http://pinga.cs.washington.edu:22221/correct";
+    const char *url = "http://localhost:22221/correct";
     curl_easy_setopt(curl, CURLOPT_URL, url);
  
     fprintf(stderr,"11\n");

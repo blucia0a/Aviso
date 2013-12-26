@@ -1,5 +1,5 @@
-set(CMAKE_CXX_FLAGS "-fPIC")
-set(CMAKE_LD_FLAGS "-shared")
+set(CMAKE_CXX_FLAGS "-pthread -fPIC")
+set(CMAKE_LD_FLAGS "-pthread -shared")
 
 include_directories(${CMAKEDEMO_SOURCE_DIR}/Runtime)
 link_directories(${CMAKEDEMO_BINARY_DIR}/Runtime)
@@ -9,3 +9,6 @@ set(IRPTROBJS Applier.cpp Avoidance.cpp ClockPortability.cpp Constructor.cpp Cor
 
 #building just a library. 
 add_library(IRPTR SHARED ${IRPTROBJS})
+
+target_link_libraries(IRPTR dl)
+target_link_libraries(IRPTR curl)
