@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <unistd.h>
 
-#define MAXVAL 100
+#define MAXVAL 1000
 
 struct wonk{
   int a;

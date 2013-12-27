@@ -54,8 +54,6 @@ func main(){
 
   var program = flag.String("prog", "", "Specify the path to the program to run")
   var args = flag.String("args", "", "Specify the args to the program")
-  //var failureDetector = flag.String("fd", "", "Specify the path to the program's failure detector")
-  //var failureDetectorArgs = flag.String("fdargs", "", "Specify the arguments to the program's failure detector")
 
   var rpbPath = flag.String("rpbpath", "", "Specify the path to the program's rpb storage location")
   var fsmCompiler = flag.String("fsmcompiler", "../Scripts/compile_fsm.sh", "Specify the path to the fsm compiler")

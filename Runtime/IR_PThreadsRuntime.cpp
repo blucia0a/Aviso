@@ -15,7 +15,8 @@
 #include <assert.h>
 
 #include <map>
-//using __gnu_cxx::hash_map;
+
+#include "ConfigurationManager.h"
 
 /*Stupid little list application function*/
 #include "Applier.h"
@@ -55,6 +56,8 @@
 #define RPB_SAMPLE_MIN 50000 /*20th of a second*/
 #define BACKOFF_INTERVAL pthread_yield() 
 #define EFL_SIZE 50000
+
+extern aviso_config *globalConfig;
 
 __thread pthread_key_t *tlsKey;
 
@@ -400,6 +403,7 @@ extern "C"{
 
     fprintf(stderr,"[AVISO] Running with Aviso enabled\n");
     if( !initialized ){ initialized = true; }else{ return; }
+
  
     ThreadData *t = (ThreadData *)pthread_getspecific(*tlsKey);
 
@@ -438,10 +442,7 @@ extern "C"{
     } 
 
     /*Get the environment specified sequence length*/
-    char *p = getenv("IR_SeqLen");
-    if(p != NULL){
-      sequenceLength = atoi(p);
-    }
+    sequenceLength = AvisoConfig_getSequenceLength(globalConfig);
 
     /*Set up the main thread's thread meta-data and start the sequence monitor*/
     t->mytid = GetTid();
@@ -465,10 +466,10 @@ extern "C"{
     char outFileName[512];
     memset(outFileName,'0',512);
     srand(time(NULL));
-    p = NULL;
-    if((p = getenv("IR_TraceDir")) != NULL){
-      sprintf(outFileName,"%s%s",p,"/RPB");
-    }
+
+    sprintf(outFileName,"%s%s",AvisoConfig_getRpbDir(globalConfig),"/RPB");
+   
+
     char buf2[1024];
     memset(buf2,0,1024);
     sprintf(buf2,"%s%lu",outFileName,(unsigned long)getpid());

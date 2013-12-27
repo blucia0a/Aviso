@@ -3,6 +3,7 @@ project(AVISO)
 
 INCLUDE(ExternalProject)
 
+
 set(CMAKE_CXX_FLAGS "-g -O2")
 set(CMAKE_C_FLAGS "-g -O2")
 
@@ -19,6 +20,3 @@ CONFIGURE_COMMAND "echo" "Building AvisoProf against $(PIN_ROOT)"
 BUILD_COMMAND "/bin/bash" "make.sh"
 INSTALL_COMMAND "echo" "Installed AvisoProf"
 )
-#add_subdirectory(AvisoProf)
-#add_subdirectory(Runner)
-#add_subdirectory(Server)

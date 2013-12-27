@@ -27,6 +27,7 @@ void __cyg_profile_func_enter(void *this_fn, void *call_site){
   }
 
   *btbuffend = __builtin_return_address(1);
+
   btbuffend++;
    
 }

@@ -6,7 +6,7 @@
 
 /*ONLINE PRUNING PARAMETERS*/
 /*Events separated by SE_INT_MIN or less are omitted*/
-#define SE_INT_MIN 2000/* 10  us*/
+#define SE_INT_MIN 1000/* 10  us*/
 
 /*Events separated by SE_INT_1 or less are truncated to one address*/
 #define SE_INT_1  2000 /* 50  us*/

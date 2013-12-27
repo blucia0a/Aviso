@@ -115,6 +115,7 @@ int IR_Lock(pthread_mutex_t *lock){
     } 
 
   }
+ 
 
   e->actor = t->mytid;
   e->time_ns = ts.tv_nsec + BIL*ts.tv_sec;

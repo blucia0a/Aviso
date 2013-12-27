@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include <sys/types.h>
 
+#include "ConfigurationManager.h"
+
+extern aviso_config *globalConfig;
+
 extern "C"{
 
 void AVISO_TimeTick(){
@@ -35,7 +39,7 @@ void AVISO_TimeTick(){
   if(curl) {
 
      
-    curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:22221/tick");
+    curl_easy_setopt(curl, CURLOPT_URL, AvisoConfig_getTickPostURL(globalConfig) );
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postdata);
  
     /* if we don't provide POSTFIELDSIZE, libcurl will strlen() by

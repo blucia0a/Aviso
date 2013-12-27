@@ -8,6 +8,9 @@
 #include "STQueue.h"
 #include "ClockPortability.h"
 #include "ThreadData.h"
+#include "ConfigurationManager.h"
+
+extern aviso_config *globalConfig;
 
 /*All threads dump to this file*/
 static FILE *correctRunFile;
@@ -22,7 +25,7 @@ bool watcherStarted = false;
 
 static long lastFirstDump = -1;
 
-/*This interval is the amount of time between a thread's dumps*/
+/*This interval is the amount of time in nanoseconds between a thread's dumps*/
 /*This should be very large or performance will suck*/
 static unsigned long dumpIntervalLow;
 static unsigned long dumpIntervalHi;
@@ -47,7 +50,8 @@ void initializeCorrectRunDump(){
   active = false;
 
   /*Get the file that we'll dump correct runs to*/
-  correctRunFileName = getenv("AVISO_SampleRPB");
+  correctRunFileName = AvisoConfig_getCorrectRunSampleRpb(globalConfig);
+  
   correctRunFile = fopen( correctRunFileName, "w" );
   if( correctRunFile == NULL ){
 
@@ -55,30 +59,9 @@ void initializeCorrectRunDump(){
 
   }
 
-  /*Parse the interval from the environment string*/
-  char *intervalString = getenv("AVISO_SampleInterval");
-  if( intervalString == NULL ){
+  dumpIntervalLow = AvisoConfig_getCorrectRunSampleIntervalLow(globalConfig);
+  dumpIntervalHi  = AvisoConfig_getCorrectRunSampleIntervalHigh(globalConfig);
 
-    return;
-
-  }
-
-  char *dumpIntervalHiPtr = NULL;
-  
-  errno = 0;
-  dumpIntervalLow = strtol( intervalString, &dumpIntervalHiPtr, 10 ); 
-  if( errno == EINVAL || errno == ERANGE ){
-    return;
-  }
-
-  /*Skip the delimiter -- assumes the delimiter is a single character*/
-  dumpIntervalHiPtr++;
-
-  errno = 0;
-  dumpIntervalHi  = strtol( dumpIntervalHiPtr, NULL, 10 ); 
-  if( errno == EINVAL || errno == ERANGE ){
-    return;
-  }
   fprintf(stderr,"[AVISO] Sampling correct execution with interval %lu-%lu\n",dumpIntervalLow,dumpIntervalHi);
 
   struct timespec t;
@@ -113,78 +96,64 @@ inline bool timeForCorrectDump(unsigned long now){
 
 void sendRPB( ){
 
-  fprintf(stderr,"1\n");
   active = false;
 
   CURL *curl;
   CURLcode res;
   struct stat file_info;
 
-  fprintf(stderr,"2\n");
   /* get the file size of the local file */ 
   int fd = open(correctRunFileName, O_RDONLY) ;
 
-  fprintf(stderr,"3\n");
   fstat(fd, &file_info);
   
-  fprintf(stderr,"4\n");
   FILE *fdPtr = fdopen(fd, "rb");
   
   if( !fdPtr ){
-    fprintf(stderr,"Couldn't get it on with file %s\n",correctRunFileName);
+
+    fprintf(stderr,"[AVISO] Couldn't open file to store correct execution: %s\n", correctRunFileName);
     return;
+
   }
  
-  fprintf(stderr,"5\n");
   /* In windows, this will init the winsock stuff */ 
   curl_global_init(CURL_GLOBAL_ALL);
  
-  fprintf(stderr,"6\n");
   /* get a curl handle */ 
   curl = curl_easy_init();
 
-  fprintf(stderr,"7\n");
   if(curl) {
 
     /* we want to use our own read function */ 
     //curl_easy_setopt(curl, CURLOPT_READFUNCTION, read_callback);
  
-    fprintf(stderr,"8\n");
     /* enable uploading */ 
     curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
  
-    fprintf(stderr,"9\n");
     /* HTTP PUT please */ 
     curl_easy_setopt(curl, CURLOPT_PUT, 1L);
  
-    fprintf(stderr,"10\n");
     /* specify target URL, and note that this URL should include a file
      * name, not only a directory */ 
-    const char *url = "http://localhost:22221/correct";
+    const char *url = AvisoConfig_getCorrectPostURL(globalConfig);
     curl_easy_setopt(curl, CURLOPT_URL, url);
  
-    fprintf(stderr,"11\n");
     /* now specify which file to upload */ 
     curl_easy_setopt(curl, CURLOPT_READDATA, fdPtr);
  
     /* provide the size of the upload, we specicially typecast the value
      * to curl_off_t since we must be sure to use the correct data size */ 
-    fprintf(stderr,"12\n");
     curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE,
                      (curl_off_t)file_info.st_size);
  
-    fprintf(stderr,"13\n");
     /* Now run off and do what you've been told! */ 
     res = curl_easy_perform(curl);
  
-    fprintf(stderr,"14\n");
     /* always cleanup */ 
     curl_easy_cleanup(curl);
   }
-  fprintf(stderr,"15\n");
-  fclose(fdPtr); /* close the local file */ 
 
-  fprintf(stderr,"16\n");
+  fclose(fdPtr); /* close the local file */ 
 
   curl_global_cleanup();
   return;

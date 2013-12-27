@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include "CorrectRunModel.h"
 #include "ThreadData.h"
+#include "ConfigurationManager.h"
+
+extern aviso_config *globalConfig;
+
 extern __thread void **btbuff;
 extern __thread void **btbuffend;
 extern __thread int btbuff_init;
@@ -16,14 +20,12 @@ void Aviso_Constructor(){
 
   pthread_key_create( tlsKey, NULL );
   
-
   ThreadData *t = (ThreadData *)malloc( sizeof(ThreadData) );
-  
   
   pthread_setspecific(*tlsKey,(void*)t);
     
-  ThreadData *t2 = (ThreadData *)pthread_getspecific(*tlsKey);
-  
+  char *configFile = getenv("AVISO_ConfigFile");
+  globalConfig = loadConfigurationFile( configFile );
   
   initializeCorrectRunDump();
 
