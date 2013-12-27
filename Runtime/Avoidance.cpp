@@ -7,7 +7,15 @@ using std::tr1::unordered_set;
 
 pthread_mutex_t MachinesLock;
 set<StateMachine *> *Machines;
+//__thread set<StateMachineFactory *> *myFactories;
+//__thread unordered_set<Backtrace *, BTHash, LooseBTEquals> *involvedBacktraces;
 
+/*Thread local buffer to put the current backtrace*/
+/*extern __thread Backtrace *bt;
+extern __thread unsigned long numMachineStarts;
+extern __thread unsigned long numMachineStartChecks;
+extern __thread unsigned long curActiveMachines;
+extern __thread unsigned long maxActiveMachines;*/
 extern __thread pthread_key_t *tlsKey;
 extern unsigned long maxMachinesGlobal; 
 
@@ -27,7 +35,7 @@ retry: /*The label to use to break out of the inner loop when waiting*/
   set<StateMachine *>::iterator it, et, wk;
   for(it = Machines->begin(), et = Machines->end(); it != et; it++){
     
-    volatile enum SMAction a = (*it)->run( t->bt, (unsigned long)pthread_self() );
+    volatile enum SMAction a = (*it)->run( t->bt, (int)pthread_self() );
     i++;
     switch(a){
 
@@ -76,7 +84,7 @@ retry: /*The label to use to break out of the inner loop when waiting*/
     t->numMachineStartChecks++;
     if((*fit)->isStartState(t->bt)){
       StateMachine *m = (*fit)->CreateMachine();
-      m->run(t->bt, (unsigned long)pthread_self());
+      m->run(t->bt, (int)pthread_self());
       t->numMachineStarts++;
       /*fprintf(stderr,"Thread %d just started a machine %d at %p!\n",(int)pthread_self(),i,bt->bt[0]);*/
       Machines->insert(m);
@@ -94,8 +102,3 @@ retry: /*The label to use to break out of the inner loop when waiting*/
 
 }
 
-void InitMachines(){
-  pthread_mutex_init(&MachinesLock, NULL);
-  Machines = new std::set<StateMachine *>(); 
-  
-}

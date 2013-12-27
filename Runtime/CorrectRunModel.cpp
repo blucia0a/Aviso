@@ -8,6 +8,9 @@
 #include "STQueue.h"
 #include "ClockPortability.h"
 #include "ThreadData.h"
+#include "ConfigurationManager.h"
+
+extern aviso_config *globalConfig;
 
 /*All threads dump to this file*/
 static FILE *correctRunFile;
@@ -22,7 +25,7 @@ bool watcherStarted = false;
 
 static long lastFirstDump = -1;
 
-/*This interval is the amount of time between a thread's dumps*/
+/*This interval is the amount of time in nanoseconds between a thread's dumps*/
 /*This should be very large or performance will suck*/
 static unsigned long dumpIntervalLow;
 static unsigned long dumpIntervalHi;
@@ -47,7 +50,8 @@ void initializeCorrectRunDump(){
   active = false;
 
   /*Get the file that we'll dump correct runs to*/
-  correctRunFileName = getenv("AVISO_SampleRPB");
+  correctRunFileName = AvisoConfig_getCorrectRunSampleRpb(globalConfig);
+  
   correctRunFile = fopen( correctRunFileName, "w" );
   if( correctRunFile == NULL ){
 
@@ -55,30 +59,9 @@ void initializeCorrectRunDump(){
 
   }
 
-  /*Parse the interval from the environment string*/
-  char *intervalString = getenv("AVISO_SampleInterval");
-  if( intervalString == NULL ){
+  dumpIntervalLow = AvisoConfig_getCorrectRunSampleIntervalLow(globalConfig);
+  dumpIntervalHi  = AvisoConfig_getCorrectRunSampleIntervalHigh(globalConfig);
 
-    return;
-
-  }
-
-  char *dumpIntervalHiPtr = NULL;
-  
-  errno = 0;
-  dumpIntervalLow = strtol( intervalString, &dumpIntervalHiPtr, 10 ); 
-  if( errno == EINVAL || errno == ERANGE ){
-    return;
-  }
-
-  /*Skip the delimiter -- assumes the delimiter is a single character*/
-  dumpIntervalHiPtr++;
-
-  errno = 0;
-  dumpIntervalHi  = strtol( dumpIntervalHiPtr, NULL, 10 ); 
-  if( errno == EINVAL || errno == ERANGE ){
-    return;
-  }
   fprintf(stderr,"[AVISO] Sampling correct execution with interval %lu-%lu\n",dumpIntervalLow,dumpIntervalHi);
 
   struct timespec t;
@@ -127,8 +110,10 @@ void sendRPB( ){
   FILE *fdPtr = fdopen(fd, "rb");
   
   if( !fdPtr ){
-    fprintf(stderr,"Couldn't get it on with file %s\n",correctRunFileName);
+
+    fprintf(stderr,"[AVISO] Couldn't open file to store correct execution: %s\n", correctRunFileName);
     return;
+
   }
  
   /* In windows, this will init the winsock stuff */ 
@@ -150,7 +135,7 @@ void sendRPB( ){
  
     /* specify target URL, and note that this URL should include a file
      * name, not only a directory */ 
-    const char *url = "http://pinga.cs.washington.edu:22221/correct";
+    const char *url = AvisoConfig_getCorrectPostURL(globalConfig);
     curl_easy_setopt(curl, CURLOPT_URL, url);
  
     /* now specify which file to upload */ 
@@ -167,6 +152,7 @@ void sendRPB( ){
     /* always cleanup */ 
     curl_easy_cleanup(curl);
   }
+
   fclose(fdPtr); /* close the local file */ 
 
   curl_global_cleanup();
@@ -229,6 +215,7 @@ extern "C" void dumpIfRequired( unsigned long now ){
     return; 
 
   }
+
 
   if( timeForCorrectDump(now) ){
 

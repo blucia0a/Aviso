@@ -1,3 +1,4 @@
+/*Various System Headers*/
 #define _USE_GNU
 #include <stdlib.h>
 #include <unistd.h>
@@ -12,6 +13,10 @@
 #include <set>
 #include <errno.h>
 #include <assert.h>
+
+#include <map>
+
+#include "ConfigurationManager.h"
 
 /*Stupid little list application function*/
 #include "Applier.h"
@@ -28,8 +33,8 @@
 /*Header declaring the interface of this module*/
 #include "IR_PThreadsRuntime.h"
 
-/*Header declaring functions private to this module*/
-#include "IR_PThreadsRuntime_private.h"
+/*Header declaring the SequenceMonitor class*/
+//#include "SequenceMonitor.h"
 
 /*Header declaring struct TraceEvent*/
 #include "TraceEvent.h"
@@ -37,10 +42,112 @@
 /*Header declaring and defining the Backtrace class and BTLEN*/
 #include "Backtrace.h"
 
+/*Header declaring the lock-free queue*/
+//#include "LFQueue.h"
+
 /*Header declaring avoidance routines that call into FSMS*/
 #include "Avoidance.h"
 
 #include "ThreadData.h"
+
+/*File-scoped constant definitions*/
+#define SYNTHETIC_EVENT_INTERVAL 20000 /*50 Microseconds*/
+#define RPB_SAMPLE_MAX 150000 /*Tenth of a second*/
+#define RPB_SAMPLE_MIN 50000 /*20th of a second*/
+#define BACKOFF_INTERVAL pthread_yield() 
+#define EFL_SIZE 50000
+
+extern aviso_config *globalConfig;
+
+__thread pthread_key_t *tlsKey;
+
+bool handlingFatalSignal = false; 
+volatile bool finishedFatalSignal = false; 
+//__thread bool alreadyDumped = false;
+
+/*RPB Output Things*/
+pthread_mutex_t outputLock;
+FILE *RPBFile;
+int numDumped;
+/*RPB Output Things*/
+
+
+/*Backtrace Collection Things*/
+extern __thread void **btbuff;
+extern __thread void **btbuffend;
+extern __thread int btbuff_init;
+/*Backtrace Collection Things*/
+
+
+
+/*event counters, for evaluation purposes*/
+/*__thread unsigned long numSynthEvents;
+__thread unsigned long numSynthBail;
+__thread unsigned long numSynthPartial;
+
+__thread unsigned long numSyncEvents;
+__thread unsigned long numSyncPartial;
+
+__thread unsigned long numMachineStartChecks;
+__thread unsigned long numMachineStarts;
+__thread unsigned long curActiveMachines;
+__thread unsigned long maxActiveMachines;
+*/
+unsigned long maxMachinesGlobal;
+/*event counters, for evaluation purposes*/
+
+
+/*sigactions to be sure we use the program's signal handlers*/
+struct sigaction sigABRTSaver;
+struct sigaction sigSEGVSaver;
+struct sigaction sigTERMSaver;
+/*sigactions to be sure we use the program's signal handlers*/
+
+
+
+/*external pointers to Thread data defined in EventRoutines.cpp*/
+/*extern __thread unsigned long mytid;
+extern __thread Backtrace *bt;
+extern __thread STQueue *myRPB;
+extern __thread unsigned synEvTime;
+extern __thread unsigned syncEvTime;*/
+/*external pointers to Thread data defined in EventRoutines.cpp*/
+
+
+
+/*Event Allocation Things*/
+/*__thread TraceEvent **eventFreeList = 0;
+__thread TraceEvent **eventFreeListNext = 0;
+__thread TraceEvent **eventFreeListTail = 0;*/
+/*Event Allocation Things*/
+
+
+
+/*Global Data in this module*/
+pthread_t allThreads[MAX_NUM_THDS];
+pthread_mutex_t allThreadsLock;
+int tids[MAX_NUM_THDS];
+unsigned int sequenceLength = 5;
+bool initialized = false;
+/*Global Data in this module*/
+
+
+/*External pointers to data in Avoidance.cpp and A local copy in Factories*/
+//extern __thread std::tr1::unordered_set<Backtrace *, BTHash, LooseBTEquals> *involvedBacktraces;
+extern pthread_mutex_t MachinesLock;
+extern std::set<StateMachine *> *Machines;
+//extern __thread std::set<StateMachineFactory *> *myFactories;
+std::set<StateMachineFactory *> *Factories;
+/*External pointers to data in Avoidance.cpp and A local copy in Factories*/
+
+
+/*Forward Declarations*/
+void GetThreadData();
+void terminationHandler(int signum);
+void _get_backtrace(void **baktrace,int addrs);
+void newEventFreeList();
+/*Forward Declarations*/
+
 
 /*Implementations*/
 int GetTid(){
@@ -72,14 +179,16 @@ FILE *getRPBFile(){
 *    had registered, to maintain correct program termination behavior (
 *    for example, mySQL does some signal time shutdown stuff).
 ************************************************************************/
+
 void thdSigEnd(int signum){
 
   ThreadData *t = (ThreadData *)pthread_getspecific(*tlsKey);
+  fprintf(stderr,"[AVISO] Thread %lu (Thread %lu) Received a dump signal -- Dumping RPB\n",(unsigned long)pthread_self(),t->mytid);
   if( signum == SIGUSR1 ){
 
     if( t->alreadyDumped ){ return; }
 
-    //fprintf(stderr,"[AVISO] Thread %lu Received SIGUSR1 -- Dumping RPB\n",(unsigned long)pthread_self());
+    fprintf(stderr,"[AVISO] Thread %lu (Thread %lu) Received SIGUSR1 -- Dumping RPB\n",(unsigned long)pthread_self(),t->mytid);
 
     t->alreadyDumped = true;
     if (pthread_mutex_trylock(&outputLock) != 0){
@@ -93,7 +202,7 @@ void thdSigEnd(int signum){
     if( ret != 0 ){
       fprintf(stderr,"[AVISO] There was an error flushing the RPB\n");
     } 
-    //fprintf(stderr,"Thread %lu Done Dumping RPB\n",(unsigned long)pthread_self());
+    fprintf(stderr,"Thread %lu (%lu) Done Dumping RPB\n",(unsigned long)pthread_self(),t->mytid);
 
     numDumped++;
     pthread_mutex_unlock(&outputLock);
@@ -115,7 +224,7 @@ void terminationHandler(int signum){
   }
 
   ThreadData *t = (ThreadData *)pthread_getspecific(*tlsKey);
-
+  fprintf(stderr,"[AVISO] Thread %lu\n",t->mytid);
   volatile int totalThreads = 0;
 
   if( signum == SIGABRT || signum == SIGSEGV ){
@@ -274,7 +383,8 @@ void terminationHandler(int signum){
     }
   }
 
-  //fprintf(stderr,"Thread %lu Calling Default handler for signal %d\n",(unsigned long)pthread_self(),signum);
+  fprintf(stderr,"Thread %lu Calling Default handler for signal %d\n",(unsigned long)pthread_self(),signum);
+  IR_Destructor();
 
   signal(signum, SIG_DFL);
   if( signum == SIGABRT ){
@@ -284,114 +394,160 @@ void terminationHandler(int signum){
 
 }
 
+extern "C"{
 
-extern "C" void IR_Constructor(){
+  void __attribute__ ((destructor)) IR_Destructor();
 
-  if( !initialized ){ initialized = true; }else{ return; }
+  void IR_Constructor(){
 
-  ThreadData *t = (ThreadData *)pthread_getspecific(*tlsKey);
 
-  maxMachinesGlobal = 0;
+    fprintf(stderr,"[AVISO] Running with Aviso enabled\n");
+    if( !initialized ){ initialized = true; }else{ return; }
 
-  t->numSynthEvents =
-  t->numSynthBail =
-  t->numSynthPartial =
-  t->numSyncEvents =
-  t->numSyncPartial =
-  t->numMachineStartChecks =
-  t->numMachineStarts =
-  t->curActiveMachines =
-  t->maxActiveMachines = 0;
+ 
+    ThreadData *t = (ThreadData *)pthread_getspecific(*tlsKey);
 
-  /*Register Signal handler for SEGV and TERM*/
-  memset(&sigABRTSaver, 0, sizeof(struct sigaction));
-  memset(&sigSEGVSaver, 0, sizeof(struct sigaction));
-  memset(&sigTERMSaver, 0, sizeof(struct sigaction));
+    maxMachinesGlobal = 0;
 
-  struct sigaction segv_sa;
-  segv_sa.sa_handler = terminationHandler;
-  sigemptyset(&segv_sa.sa_mask);
-  segv_sa.sa_flags = SA_RESTART;
-  sigaction(SIGSEGV,&segv_sa,&sigSEGVSaver);
-  sigaction(SIGTERM,&segv_sa,&sigTERMSaver);
-  sigaction(SIGABRT,&segv_sa,&sigABRTSaver);
+    t->numSynthEvents =
+    t->numSynthBail =
+    t->numSynthPartial =
+    t->numSyncEvents =
+    t->numSyncPartial =
+    t->numMachineStartChecks =
+    t->numMachineStarts =
+    t->curActiveMachines =
+    t->maxActiveMachines = 0;
+
+    /*Register Signal handler for SEGV and TERM*/
+    memset(&sigABRTSaver, 0, sizeof(struct sigaction));
+    memset(&sigSEGVSaver, 0, sizeof(struct sigaction));
+    memset(&sigTERMSaver, 0, sizeof(struct sigaction));
+
+    struct sigaction segv_sa;
+    segv_sa.sa_handler = terminationHandler;
+    sigemptyset(&segv_sa.sa_mask);
+    segv_sa.sa_flags = SA_RESTART;
+    sigaction(SIGSEGV,&segv_sa,&sigSEGVSaver);
+    sigaction(SIGTERM,&segv_sa,&sigTERMSaver);
+    sigaction(SIGABRT,&segv_sa,&sigABRTSaver);
+    
+    signal(SIGUSR1,thdSigEnd); 
+
+    /*Initialize the array of sequentialized thread IDs*/
+    pthread_mutex_init(&allThreadsLock,NULL);
+    for(int i = 0; i < MAX_NUM_THDS; i++){
+      tids[i] = i;
+      allThreads[i] = 0;
+    } 
+
+    /*Get the environment specified sequence length*/
+    sequenceLength = AvisoConfig_getSequenceLength(globalConfig);
+
+    /*Set up the main thread's thread meta-data and start the sequence monitor*/
+    t->mytid = GetTid();
+
+    pthread_mutex_lock(&allThreadsLock);
+    allThreads[t->mytid] = pthread_self();
+    pthread_mutex_unlock(&allThreadsLock);
+
+    t->myRPB = new STQueue();
+
+    /*Initialize the avoidance data structures*/
+    pthread_mutex_init(&MachinesLock, NULL);
+    Machines = new std::set<StateMachine *>(); 
+    Factories = new std::set<StateMachineFactory *>(); 
   
-  signal(SIGUSR1,thdSigEnd); 
+    t->eventFreeList = (TraceEvent **)malloc(sizeof(TraceEvent *) * EFL_SIZE);
+    newEventFreeList();
+    t->bt = new Backtrace();
+    
+    pthread_mutex_init(&outputLock,NULL);
+    char outFileName[512];
+    memset(outFileName,'0',512);
+    srand(time(NULL));
 
-  /*Initialize the array of sequentialized thread IDs*/
-  pthread_mutex_init(&allThreadsLock,NULL);
-  for(int i = 0; i < MAX_NUM_THDS; i++){
-    tids[i] = i;
-    allThreads[i] = 0;
-  } 
-
-  /*Get the environment specified sequence length*/
-  char *p = getenv("IR_SeqLen");
-  if(p != NULL){
-    sequenceLength = atoi(p);
-  }
-
-  /*Set up the main thread's thread meta-data and start the sequence monitor*/
-  t->mytid = GetTid();
-  t->myRPB = new STQueue();
-
-  /*Initialize the avoidance data structures*/
-  InitMachines();
-  Factories = new std::set<StateMachineFactory *>(); 
-
-  t->bt = new Backtrace();
-  
-  pthread_mutex_init(&outputLock,NULL);
-  char outFileName[512];
-  memset(outFileName,0,512);
-  srand(time(NULL));
-  p = NULL;
-  if((p = getenv("IR_TraceDir")) != NULL){
+    sprintf(outFileName,"%s%s",AvisoConfig_getRpbDir(globalConfig),"/RPB");
+   
 
     char buf2[1024];
     memset(buf2,0,1024);
-    sprintf(outFileName,"%s%s",p,"/RPB");
     sprintf(buf2,"%s%lu",outFileName,(unsigned long)getpid());
-    RPBFile = fopen(buf2,"w");
     fprintf(stderr,"[Aviso] RPB: %s\n",buf2);
+    RPBFile = fopen(buf2,"w");
+ 
+    if( RPBFile == NULL ){
+      RPBFile = stderr;
+    }
 
-  }else{
+    loadPlugins(Factories,"IR_Plugins");
+  
+    t->myFactories = new std::set<StateMachineFactory *>();
+    std::set<StateMachineFactory *>::iterator it, et;
+    for(it = Factories->begin(), et = Factories->end(); it != et; it++){
 
-    RPBFile = NULL;
-    fprintf(stderr,"[Aviso] RPB: <stderr>\n");
+      t->myFactories->insert((*it));
+
+    }
+
+    t->involvedBacktraces = 
+      new std::tr1::unordered_set<Backtrace *, BTHash, LooseBTEquals>();
+    loadPluginConfigs(t->involvedBacktraces,"IR_PluginConfs");
 
   }
 
-  if( RPBFile == NULL ){
-    RPBFile = stderr;
+  void IR_Destructor(){
+  
+    fprintf(stderr,"[AVISO] Process %d ended.\n",getpid());
+    
+    #if defined(PRINTSTATS)
+    fprintf(stderr,"FORMATthreadid numSynthEvents, numSynthBail,numSynthPartial,numSyncEvents,numSyncPartial, numMachineStartChecks, numMachineStarts, curActiveMachines, maxActiveMachines\n");
+    fprintf(stderr,"Max Machines Global = %lu\n",maxMachinesGlobal);
+    #endif
+  
+    while(handlingFatalSignal && !finishedFatalSignal){ }
+
+    FILE *f = getRPBFile();
+    ThreadData *t = (ThreadData *)pthread_getspecific(*tlsKey);
+    if( ! t->alreadyDumped ){
+  
+      t->alreadyDumped = true;
+      pthread_mutex_lock(&outputLock);
+      t->myRPB->Dump( f );
+      int ret = fflush( f );
+      if( ret != 0 ){
+        fprintf(stderr,"[AVISO] There was an error flushing the RPB\n");
+      } 
+      pthread_mutex_unlock(&outputLock);
+  
+    }
+
   }
-
-  loadPlugins(Factories,"IR_Plugins");
-
-  t->myFactories = new std::set<StateMachineFactory *>();
-  std::set<StateMachineFactory *>::iterator it, et;
-  for(it = Factories->begin(), et = Factories->end(); it != et; it++){
-
-    t->myFactories->insert((*it));
-
-  }
-
-  t->involvedBacktraces = 
-    new std::tr1::unordered_set<Backtrace *, BTHash, LooseBTEquals>();
-  loadPluginConfigs(t->involvedBacktraces,"IR_PluginConfs");
 
 }
 
-extern "C" void IR_Destructor(){
-  
-  fprintf(stderr,"[AVISO] Process %d ended.\n",getpid());
-  
-  #if defined(PRINTSTATS)
-  fprintf(stderr,"FORMATthreadid numSynthEvents, numSynthBail,numSynthPartial,numSyncEvents,numSyncPartial, numMachineStartChecks, numMachineStarts, curActiveMachines, maxActiveMachines\n");
-  fprintf(stderr,"Max Machines Global = %lu\n",maxMachinesGlobal);
-  #endif
+void newEventFreeList(){
 
-  while(handlingFatalSignal && !finishedFatalSignal){ }
+  ThreadData *t = (ThreadData *)pthread_getspecific(*tlsKey);
+  for(int i = 0; i < EFL_SIZE; i++){
+    t->eventFreeList[i] = (TraceEvent *)malloc(sizeof(TraceEvent));
+  }
+  t->eventFreeListNext = &(t->eventFreeList[0]);
+  t->eventFreeListTail = &(t->eventFreeList[EFL_SIZE-1]);
+
+}
+
+static inline TraceEvent *getFreeEvent(){
+
+  ThreadData *t = (ThreadData *)pthread_getspecific(*tlsKey);
+  if( t->eventFreeListNext == t->eventFreeListTail ){
+    newEventFreeList();
+  }
+
+  TraceEvent *r = *(t->eventFreeListNext);
+  (t->eventFreeListNext)++;
+  return r;
+
 }
 
 void thdDestructor(void *vt){
@@ -415,7 +571,7 @@ void thdDestructor(void *vt){
    *so they can be reused by other threads
   */
   pthread_mutex_lock(&allThreadsLock);
-  allThreads[t->mytid] = NULL;
+  allThreads[t->mytid] = (pthread_t)NULL;
   pthread_mutex_unlock(&allThreadsLock);
 
   CAS(&(tids[t->mytid]),0,tids[t->mytid]);
@@ -450,6 +606,10 @@ void GetThreadData(){
 
   pthread_setspecific(*tlsKey,(void*)t);
 
+  t->eventFreeList = (TraceEvent **)malloc(sizeof(TraceEvent *) * EFL_SIZE);
+
+  newEventFreeList();
+
   t->bt = new Backtrace();
 
   t->mytid = GetTid(); 
@@ -471,5 +631,35 @@ void GetThreadData(){
   t->involvedBacktraces = 
     new std::tr1::unordered_set<Backtrace *, BTHash, LooseBTEquals>();
   loadPluginConfigs(t->involvedBacktraces,"IR_PluginConfs");
+  
 
 }
+
+extern "C"{
+int IR_Exit(int exitCode){
+  exit(exitCode);
+}
+}
+
+extern "C"{
+int IR_LockInit(pthread_mutex_t *lock,pthread_mutexattr_t *attr){
+  return pthread_mutex_init(lock,attr);
+}
+}
+
+extern "C"{
+void IR_Assert(int expression){
+  
+
+  if( expression == 0 ){
+    fprintf(stderr,"[AVISO] Assertion Failure: Aborting with \"Segmentation Fault\"\n");
+    pthread_kill(pthread_self(),11);
+
+  }
+
+  return;
+
+}
+}
+
+

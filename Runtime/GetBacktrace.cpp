@@ -1,15 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "GetBacktrace.h"
 #include "STQueue.h"
 #include "Backtrace.h"
 
+#define MAX_STACK_DEPTH 100
+void _get_backtrace(void **baktrace,int addrs);
 __thread void **btbuff = NULL;
 __thread void **btbuffend = NULL;
 __thread int btbuff_init = 0;
 
 extern __thread pthread_key_t *tlsKey;
 void GetThreadData();
+
+
+extern "C" void IR_SyntheticEvent();
 
 extern "C"{
 void __cyg_profile_func_enter(void *this_fn, void *call_site){
@@ -23,6 +27,7 @@ void __cyg_profile_func_enter(void *this_fn, void *call_site){
   }
 
   *btbuffend = __builtin_return_address(1);
+
   btbuffend++;
    
 }
@@ -37,7 +42,7 @@ void __cyg_profile_func_exit  (void *this_fn, void *call_site){
 }
 }
 
-extern "C" void _get_backtrace(void **baktrace,int addrs){
+void _get_backtrace(void **baktrace,int addrs){
 
   int a = 0;
   void **biter = btbuffend;

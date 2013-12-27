@@ -1,6 +1,6 @@
 #!/bin/bash
 
-AVISOHOME=/sampa/home/blucia/cvsandbox/Aviso
+AVISOHOME=/home/vagrant/cvsandbox/Aviso
 AVISOSCRIPTS=$AVISOHOME/Scripts
 
 TRACE=$1

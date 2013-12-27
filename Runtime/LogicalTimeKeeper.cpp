@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include <sys/types.h>
 
+#include "ConfigurationManager.h"
+
+extern aviso_config *globalConfig;
+
 extern "C"{
 
 void AVISO_TimeTick(){
@@ -21,13 +25,13 @@ void AVISO_TimeTick(){
     cursor = fsms + len - 1;
     while( cursor > fsms && *cursor != '/'){ cursor--; }
     cursor++;
-    //fprintf(stderr,"Found the string! %s\n",cursor);
+    fprintf(stderr,"Found the string! %s\n",cursor);
     len = strlen(cursor);
 
   }
   char postdata[ len + 20 ];
   memset( postdata, 0, len + 20 );
-  sprintf(postdata,"fsm=%s;&pid=%lu",fsms == NULL ? "baseline" : cursor, mypid);
+  sprintf(postdata,"fsm=%s;&pid=%lu",fsms == NULL ? "baseline" : cursor, (unsigned long)mypid);
 
   fprintf(stderr,"[AVISO] Tick Post: %s\n",postdata);
  
@@ -35,7 +39,7 @@ void AVISO_TimeTick(){
   if(curl) {
 
      
-    curl_easy_setopt(curl, CURLOPT_URL, "http://pinga.cs.washington.edu:22221/tick");
+    curl_easy_setopt(curl, CURLOPT_URL, AvisoConfig_getTickPostURL(globalConfig) );
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postdata);
  
     /* if we don't provide POSTFIELDSIZE, libcurl will strlen() by

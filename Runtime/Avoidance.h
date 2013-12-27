@@ -11,6 +11,4 @@
 
 bool Avoidance();
 void Probe();
-void InitMachines();
-
 #endif

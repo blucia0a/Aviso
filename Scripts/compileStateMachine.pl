@@ -53,7 +53,7 @@ class ".$machineName."StateMachine : public StateMachine{
 public:
 
   ".$machineName."StateMachine();
-  virtual enum SMAction run(Backtrace *t, unsigned long tid);
+  virtual enum SMAction run(Backtrace *t, int tid);
 
 };
 
@@ -106,7 +106,7 @@ $machineName."StateMachine::".$machineName."StateMachine(){
 print "
 }
 
-enum SMAction ".$machineName."StateMachine::run(Backtrace *t, unsigned long tid){
+enum SMAction ".$machineName."StateMachine::run(Backtrace *t, int tid){
 
   if(curState == 0){/*Empty*/
 
@@ -234,7 +234,7 @@ class ".$machineName."StateMachine : public StateMachine{
 public:
 
   ".$machineName."StateMachine();
-  virtual enum SMAction run(Backtrace *t, unsigned long tid);
+  virtual enum SMAction run(Backtrace *t, int tid);
 
 };
 
@@ -287,7 +287,7 @@ $machineName."StateMachine::".$machineName."StateMachine(){
 print "
 }
 
-enum SMAction ".$machineName."StateMachine::run(Backtrace *t, unsigned long tid){
+enum SMAction ".$machineName."StateMachine::run(Backtrace *t, int tid){
 
   if(curState == 0){/*Empty*/
 

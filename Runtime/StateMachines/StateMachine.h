@@ -11,8 +11,8 @@ protected:
   char *IDString;
 
 public:
-  virtual enum SMAction run(Backtrace *bt, unsigned long tid) = 0;  
-  void dumpBTs(FILE *f){ fprintf(f,IDString); }
+  virtual enum SMAction run(Backtrace *bt, int tid) = 0;  
+  void dumpBTs(FILE *f){ fprintf(f,"%s",IDString); }
 
 };
 #endif

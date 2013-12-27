@@ -10,13 +10,17 @@
 #include "Backtrace.h"
 #include "ClockPortability.h"
 #include "ThreadData.h"
-#include "EventRoutines.h"
-#include "IR_PThreadsRuntime.h"
-
 
 extern "C" void dumpIfRequired( unsigned long now );
 
 #define BIL 1000000000
+//extern __thread std::tr1::unordered_set<Backtrace *, BTHash, LooseBTEquals> *involvedBacktraces;
+
+/*__thread Backtrace *bt;
+__thread unsigned t->synthEvTime;
+__thread unsigned t->syncEvTime;
+__thread STQueue *myRPB = NULL;
+__thread unsigned long mytid = 0;*/
 
 extern __thread void **btbuffend;
 extern __thread void **btbuff;
@@ -32,8 +36,6 @@ void IR_SyntheticEvent(){
   if(tlsKey == NULL){
     GetThreadData();
   }
-
-  fprintf(stderr,"Hoo Hahh\n");
 
   ThreadData *t = (ThreadData *)pthread_getspecific(*tlsKey);
 
@@ -73,6 +75,7 @@ void IR_SyntheticEvent(){
     Avoidance();
   }
   
+  t->myRPB->Add(e);
 
   return;
 
@@ -112,6 +115,7 @@ int IR_Lock(pthread_mutex_t *lock){
     } 
 
   }
+ 
 
   e->actor = t->mytid;
   e->time_ns = ts.tv_nsec + BIL*ts.tv_sec;
@@ -122,6 +126,7 @@ int IR_Lock(pthread_mutex_t *lock){
     Avoidance();
   }
   
+  t->myRPB->Add(e);
 
   return pthread_mutex_lock(lock);
 
@@ -176,6 +181,7 @@ int IR_Unlock(pthread_mutex_t *lock){
     Avoidance();
   }
 
+  t->myRPB->Add(e);
 
   return pthread_mutex_unlock(lock);
 
@@ -230,6 +236,7 @@ int IR_Join(pthread_t thd,void **value){
     Avoidance();
   }
 
+  t->myRPB->Add(e);
 
   return pthread_join(thd,value);
 
@@ -239,7 +246,6 @@ int IR_Join(pthread_t thd,void **value){
 
 extern "C"{
 int IR_Mutex_Destroy(pthread_mutex_t *l){
-
 
   if(tlsKey == NULL){
     GetThreadData();
@@ -257,24 +263,15 @@ int IR_Mutex_Destroy(pthread_mutex_t *l){
   
   TraceEvent * e; 
 
-  if(dif < SE_INT_MIN && dif > 0 ){
-
-    return pthread_mutex_destroy(l);
-
-  }else{
-
-    e = t->myRPB->GetNextEvent();
-    int a = 0;
-    void **biter = btbuffend;
+  e = t->myRPB->GetNextEvent();
+  int a = 0;
+  void **biter = btbuffend;
+  biter--;
+  while(a < BTLEN && biter != btbuff){
+    e->bt[a++] = *biter;
     biter--;
-    //fprintf(stderr,"BT: ");
-    while(a < BTLEN && biter != btbuff){
-      //fprintf(stderr,"%p ",*biter);
-      e->bt[a++] = *biter;
-      biter--;
-    } 
+  } 
 
-  }
 
   e->actor = t->mytid;
   e->time_ns = ts.tv_nsec + BIL*ts.tv_sec;
@@ -285,36 +282,9 @@ int IR_Mutex_Destroy(pthread_mutex_t *l){
     Avoidance();
   }
 
+  t->myRPB->Add(e);
 
   return pthread_mutex_destroy(l);
-
-}
-}
-
-
-extern "C"{
-int IR_Exit(int exitCode){
-  exit(exitCode);
-}
-}
-
-extern "C"{
-int IR_LockInit(pthread_mutex_t *lock,pthread_mutexattr_t *attr){
-  return pthread_mutex_init(lock,attr);
-}
-}
-
-extern "C"{
-void IR_Assert(int expression){
-  
-
-  if( expression == 0 ){
-    fprintf(stderr,"[AVISO] Assertion Failure: Aborting with \"Segmentation Fault\"\n");
-    pthread_kill(pthread_self(),11);
-
-  }
-
-  return;
 
 }
 }

@@ -84,7 +84,6 @@ void my_insert_synth_ev(basic_block bb, gimple_stmt_iterator *gsi, gimple stmt){
 
     std::pair<std::string, unsigned int> point(filename, line);
 
-
     if( points.find(point) == points.end() ){
       
       return;

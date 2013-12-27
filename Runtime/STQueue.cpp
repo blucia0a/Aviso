@@ -1,6 +1,8 @@
 #include "STQueue.h"
+#include "ConfigurationManager.h"
 #include <stdlib.h>
 
+extern aviso_config *globalConfig;
 /* 
  * Cur starts at 0.  each add frees cur if it isn't null, and increments it %
  * RECENCY_WINDOW.  Cur is the tail. q[(cur + 1) % RECENCY_WINDOW] is the head / OLDEST ENTRY
@@ -21,13 +23,15 @@ TraceEvent *STQueue::GetNextEvent(){
 
 void STQueue::Add(TraceEvent *t){
  
+  //q[cur] = t;
+  //cur = (cur + 1) % RECENCY_WINDOW;
  
 }
 
 void STQueue::Dump(FILE *out){
 
-  char *json = getenv("AVISO_JSON");
-  if( json == NULL ){
+  int json = AvisoConfig_getUseJson(globalConfig);
+  if( json == 0 ){
 
     /*Dumps the queue's contents oldest-first*/
     for(int i = ((cur + 1) % RECENCY_WINDOW);
