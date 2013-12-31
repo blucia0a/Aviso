@@ -5,6 +5,7 @@
 #include <tr1/unordered_set>
 #include <set>
 #include <dlfcn.h>
+#include <assert.h>
 
 struct pcbt {
   bool skipName;
@@ -62,7 +63,8 @@ void processPluginConfig(char *conf,void *v){
     (std::tr1::unordered_set< Backtrace *, BTHash, LooseBTEquals> *) v;
   char buf[1024];
   memset(buf,0,1024);
-  fgets(buf,1024,f);
+  char *retf = fgets(buf,1024,f);
+  assert(retf != NULL);
 
   applyToTokens(buf," ",processPluginConfigLine,(void*)&pcb);
 

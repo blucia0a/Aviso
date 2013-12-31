@@ -3,9 +3,9 @@ project(AVISO)
 
 INCLUDE(ExternalProject)
 
-
 set(CMAKE_CXX_FLAGS "-g -O2")
 set(CMAKE_C_FLAGS "-g -O2")
+
 
 add_subdirectory(Runtime)
 add_subdirectory(AvisoCompiler)

@@ -1,3 +1,4 @@
+message(STATUS "----Configuring the Aviso Compiler----")
 function(get_gcc_prop prop OUTVAR)
   execute_process(
     COMMAND ${CMAKE_C_COMPILER} "-${prop}"
@@ -7,7 +8,7 @@ function(get_gcc_prop prop OUTVAR)
   set(${OUTVAR} ${gcc_prop} PARENT_SCOPE)
 endfunction()
 
-function(get_gcc_version)
+function(check_gcc_version)
   get_gcc_prop(dumpversion VER)
   set(VER__ "${VER}.0.0")
 
@@ -20,8 +21,22 @@ function(get_gcc_version)
   list(GET VERS 2 V2)
   set(GCC_MICRO ${V2} PARENT_SCOPE)
 
-  message(STATUS "The version is ${VER} (major=${V0}, minor=${V1}, micro=${V2})")
+  message(STATUS "GCC ${VER} detected")
+  if(${VER} VERSION_LESS "4.7.0")
+    message(FATAL_ERROR "GCC 4.7.0 or greater is required to build AvisoCompiler.")
+  endif(${VER} VERSION_LESS "4.7.0")
+
 endfunction()
+
+if(NOT ${CMAKE_COMPILER_IS_GNUC})
+message(FATAL_ERROR "AvisoCompiler requires the GNU C Compiler")
+endif(NOT ${CMAKE_COMPILER_IS_GNUC})
+
+if(NOT ${CMAKE_COMPILER_IS_GNUCXX})
+message(FATAL_ERROR "AvisoCompiler requires the GNU CXX Compiler")
+endif(NOT ${CMAKE_COMPILER_IS_GNUCXX})
+
+check_gcc_version()
 
 get_gcc_prop("-print-file-name=plugin" GCC_PLUGIN_DIR)
 message(STATUS "GCC's plugin directory is ${GCC_PLUGIN_DIR}")
@@ -34,3 +49,4 @@ set(CMAKE_LD_FLAGS "${CMAKE_LD_FLAGS} -shared")
 #building just a library. 
 add_library(aviso SHARED aviso.c myexpand.cpp)
 set_target_properties(aviso PROPERTIES PREFIX "")
+message(STATUS "----Done Configuring the Aviso Compiler----")

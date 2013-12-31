@@ -1,6 +1,10 @@
+message(STATUS "----Configuring the Aviso Runtime----")
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -fPIC")
 set(INSTRUMENT_CXX_FLAGS "-fno-omit-frame-pointer -finstrument-functions -pthread -fPIC")
 set(CMAKE_LD_FLAGS "${CMAKE_LD_FLAGS} -pthread -shared")
+
+find_package(CURL)
 
 include_directories(${CMAKEDEMO_SOURCE_DIR}/Runtime)
 link_directories(${CMAKEDEMO_BINARY_DIR}/Runtime)
@@ -15,3 +19,4 @@ add_library(IRPTR SHARED ${IRPTROBJS})
 
 target_link_libraries(IRPTR dl)
 target_link_libraries(IRPTR curl)
+message(STATUS "----Done Configuring the Aviso Runtime----")
