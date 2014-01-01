@@ -1,7 +1,7 @@
 Aviso
 =====
 
--Overview-
+=Overview=
 A distributed system implementation of the Aviso algorithm for dynamically avoiding failures due to concurrency bugs
 
 Aviso is a system that avoids failures in shared memory multithreaded programs.  Aviso avoids failures that are
@@ -26,16 +26,34 @@ The Aviso server is a program that can run on any computer accessible via http. 
 failed execution from the execution harness, it analyzes it for several reasons.  The first thing the server does is
 to generate small program plugins called Failure-avoidance State Machines (FSMs).  The server generates an FSM for each
 unique ordered pair of events in the RPB.  An FSM is a dynamically loadable shared library that can be loaded by the
-runtime.  FSMs contain code that tries to reorder the pair of events from which it was generated.
+runtime.  An FSM contains code that tries to reorder the pair of events from which it was generated.   If the runtime
+loads an FSM that reorders a pair of events that, if not reordered, would cause a failure, then that FSM successfully
+avoids that failure.  
+
+The second thing the server does is to build a statistical model that helps decide which pair of events in the RPB
+is likely to have caused the failure.  If the server can decide that, then it recommends to the runtime that the FSM
+corresponding to that pair of events be loaded.  The server maintains a statistical model of pairs of events that
+helps determine which pairs' FSMs are worth loading.  The statistical model tracks properties of RPBs from failed 
+executions as well as properties of RPBs from non-failing portions of executions.  RPBs from non-failing portions
+of executions are periodically sampled by the runtime and sent via http to the server.  The details of the model
+are omitted here.  See the Further Reading section below for two references that describe the model in detail (with
+pictures).  A key part of the model is that the server tries to decide which FSMs were observed to have been loaded
+in failing and non-failing executions.  If an FSM is loaded in a failing run, its pair isn't likely to have caused the
+failure -- if it had, the FSM would've prevented it.  IF an FSM is loaded in a non-failing run and its pair caused
+the failure, then the FSM prevented it.  The server also considers analytical properties of RPBs from failing and
+non-failing executions.  Combining that with direct observation of FSM failure rates helps decide which FSMs to use.
 
 
 
-The second thing the server does
-is to build a statistical model that helps decide which sequence of events in different threads is likely to have
-caused the failure.  
+
+To summarize the mechanism:
+
+Runtime runs program.  Crash happens.  Runtime sends RPBs to server.  Server collects RPBs.  Server builds FSMs
+from RPBs.  Server builds statistical model from RPBs.  Server uses model to decide which FSMs runtime should load.
+Runtime loads RPBs recommended by Server.  Runtime reports to server which FSMs are loaded when failures occur.
 
 
--Further Reading-
+=Further Reading=
 The algorithms implemented in this system were first described in a "Cooperative Empirical Failure Avoidance for 
 Multithreaded Programs" (http://dl.acm.org/citation.cfm?id=2451121) and later in Chapter 6 of Brandon Lucia's PhD
 dissertation (https://digital.lib.washington.edu/dspace/bitstream/handle/1773/23483/Lucia_washington_0250E_11953.pdf?sequence=1)
