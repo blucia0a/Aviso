@@ -21,6 +21,7 @@ type PairList []Pair
 func (p PairList) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 func (p PairList) Len() int { return len(p) }
 func (p PairList) Less(i, j int) bool { return p[i].Value < p[j].Value }
+
 // A function to turn a map into a PairList, then sort and return it. 
 func sortMapByValue(m map[uint]float64) PairList {
 
@@ -72,8 +73,6 @@ func FailureClassStatsTableString( fsmFailures *map[uint] uint,
   var chiSquaredValues map[uint]float64 = make(map[uint]float64)
 
   baselineFailureRate := float64(baseFail) / (float64(baseFail) + float64(baseSucc))
-
-
 
   for k,v := range *fsmSuccesses{
 

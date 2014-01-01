@@ -1,6 +1,15 @@
 package avisostats
 
-func ComputeChiSquare(numFail float64,numSucc float64,baseFail float64, baseSucc float64) float64{
+func ComputeChiSquare(numFail float64,
+                      numSucc float64,
+                      baseFail float64,
+                      baseSucc float64) float64{
+  /*Compute the Chi-square statistic that decides if the number of 
+    failures and successes for this fsm make it significantly 
+    different from the number of failures and successes for
+    the baseline.
+  */
+
 
   /*compute expected values for numFail, numSucc, baseFail, baseSucc*/
 
@@ -28,9 +37,11 @@ func ComputeChiSquare(numFail float64,numSucc float64,baseFail float64, baseSucc
   expectedFsmFail  := failColTotal * fsmRowTotal / allTotal
   expectedFsmSucc  := succColTotal * fsmRowTotal / allTotal
 
-  chiSquared := (( baseFail - expectedBaseFail ) * ( baseFail - expectedBaseFail) / expectedBaseFail) + (( baseSucc - expectedBaseSucc ) * ( baseSucc - expectedBaseSucc) / expectedBaseSucc) + (( numFail - expectedFsmFail ) * ( numFail - expectedFsmFail )    / expectedFsmFail ) + (( numSucc - expectedFsmSucc ) * ( numSucc - expectedFsmSucc )    / expectedFsmSucc )
+  chiSquared := (( baseFail - expectedBaseFail ) * ( baseFail - expectedBaseFail) / expectedBaseFail) +
+                (( baseSucc - expectedBaseSucc ) * ( baseSucc - expectedBaseSucc) / expectedBaseSucc) +
+                (( numFail - expectedFsmFail )   * ( numFail - expectedFsmFail )  / expectedFsmFail ) +
+                (( numSucc - expectedFsmSucc )   * ( numSucc - expectedFsmSucc )  / expectedFsmSucc )
 
   return chiSquared
 
 }
-

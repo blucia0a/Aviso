@@ -83,14 +83,28 @@ func (m *Model) addPairToModel( class uint, e1 string, e2 string, f uint ){
 
 func (m *Model) AddFailureToModel( class uint, failure avisofailure.Failure ){
 
+  /*m.failurePairs is has a map for each failure class
+   *A failure class's map maps from a first event to a second event
+   *and then to a count of the number of failures in which that 
+   *pair of events has occurred.
+   *
+   *The top portion of the code in this section manages setting
+   *that data structure up so that there are no nil map accesses, etc
+   */
   if m.failurePairs == nil {
 
     mo := make([]map[string]map[string]uint,10)
+
     m.failurePairs = &mo
+
     for i := range *m.failurePairs {
+
       if (*m.failurePairs)[i] == nil{
+
         (*m.failurePairs)[i] = make(map[string]map[string]uint)
+
       }
+
     }
 
   }
@@ -100,14 +114,24 @@ func (m *Model) AddFailureToModel( class uint, failure avisofailure.Failure ){
     tmp := make( []map[string]map[string]uint, int(class) - len(*m.failurePairs) )
 
     *m.failurePairs = append(*m.failurePairs, tmp...)
+
     for i := range *m.failurePairs {
+
       if (*m.failurePairs)[i] == nil{
+
         (*m.failurePairs)[i] = make(map[string]map[string]uint)
+
       }
+
     }
 
   }
 
+  /*The idea with the localmap is that we only want to
+   *count each pair once per failure.  If we see a pair,
+   *we add it to the set <localmap>.  Then, when we see
+   *a pair that is already in the localmap, don't double
+   *count it.*/
   localmap := make(map[string]map[string]bool)
 
   for i := range (*failure.History){
@@ -314,7 +338,8 @@ func (m *Model) computeFailureCorrelate( fsm fsm.Fsm, class uint ) float64{
   if _,ok := (*m.failurePairs)[class][fsm.GetFirst()]; ok{
 
     if _,ok2 := (*m.failurePairs)[class][fsm.GetFirst()][fsm.GetSecond()]; ok2{
-      return float64((*m.failurePairs)[class][fsm.GetFirst()][fsm.GetSecond()]) / float64(m.numFailures)
+
+      return float64( (*m.failurePairs)[class][fsm.GetFirst()][fsm.GetSecond()] ) / float64(m.numFailures)
 
     }
 
@@ -327,9 +352,7 @@ func (m *Model) computeFailureCorrelate( fsm fsm.Fsm, class uint ) float64{
 func (model *Model) RankFsm( fsm fsm.Fsm, class uint ) float64{
 
   newval := model.computeOrderScore(fsm) * model.computeCoOccurrenceScore(fsm) * model.computeFailureCorrelate( fsm, class )
-  //newval :=  model.computeFailureCorrelate( fsm, class )
-  //newval := 1.0
-  //fmt.Println("Rank: ",newval)
+
   return newval
 
 }

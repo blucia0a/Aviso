@@ -54,7 +54,6 @@ func main(){
 
   var program = flag.String("prog", "", "Specify the path to the program to run")
   var args = flag.String("args", "", "Specify the args to the program")
-
   var rpbPath = flag.String("rpbpath", "", "Specify the path to the program's rpb storage location")
   var fsmCompiler = flag.String("fsmcompiler", "../Scripts/compile_fsm.sh", "Specify the path to the fsm compiler")
   var fsmDir = flag.String("fsmdir", ".fsms", "Specify the path to the fsms")
@@ -63,18 +62,6 @@ func main(){
 
   pargs := strings.Split(*args," ")
 
-  //buffer := bytes.NewBufferString("IR_TraceDir=");
-  //fmt.Fprintf(buffer, *rpbPath)
-  //myenv := append( os.Environ(), string(buffer.Bytes()) )
-
-  /*Assumes that AVISO_SampleInterval is defined in the environment already*/
-  //buffer = bytes.NewBufferString("AVISO_SampleRPB=");
-  //tmpFile,_ := ioutil.TempFile(".","aviso")
-  //fmt.Fprintf(tmpFile,"%v",string(buffer.Bytes()))
-  //tmpFile.Close()
-  //fmt.Fprintf(buffer,tmpFile.Name())
-  //tmpFile.Close()
-  //myenv = append( os.Environ(), string(buffer.Bytes()) )
   myenv := os.Environ()
 
   fmt.Println("Running the start http request")
@@ -255,7 +242,9 @@ func main(){
   fmt.Println("Post...")
   resp, _ := http.Post("http://localhost:22221/end", "application/x-www-form-urlencoded", strings.NewReader(v.Encode()))
   if( resp != nil ){
+
     fmt.Printf("Response from AvisoServer: %v\n",resp)
+
   }
 
 

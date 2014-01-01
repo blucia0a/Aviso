@@ -1,5 +1,10 @@
 package avisomsgs
 
+/*
+AvisoMsgs - this is a set of message data structures that are passed
+            between the main components of the system.  
+*/
+
 import (
         "../avisoevent"
         "../fsm"

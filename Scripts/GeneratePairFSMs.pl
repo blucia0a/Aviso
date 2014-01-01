@@ -10,11 +10,16 @@ if( $#ARGV != 2 ){
   die "Must specify failing file, correct histo, and threshold\n";
 }
 
+#this program takes three arguments:
+#1)the failing file
+#2)the correct run histogram
+#3)the distance threshold beyond which events are considered to have cooccurred
+
 my $failingPairsFile = shift @ARGV; 
 my $correctPairsFile = shift @ARGV; $correctPairsFile = "" if !defined $correctPairsFile;
 my $thresh = shift @ARGV; $thresh = 10 if !defined $thresh;
 
-#expects a list of formatted BT pairs with $thresh length distance vectors
+#The failing file is a list of formatted BT pairs with <thresh> length distance vectors
 my %failingFrequencies;
 my $FAIL;
 open $FAIL, "<$failingPairsFile";
@@ -38,6 +43,9 @@ while(<$FAIL>){
 
 }
 
+#The correct file should look like this:
+#Event1 Event2 freq1 freq2 freq3 freq4 freq5 ... freq<thresh>
+#events are backtraces and freqs are frequencies
 my $totalEvents = 0;
 my %correctFrequencies;
 if( defined $correctPairsFile ){
@@ -71,18 +79,27 @@ if( defined $correctPairsFile ){
       }else{
 
         for(0 .. $#freqs){
+
           if(defined $correctFrequencies{$e1}->{$e2}->[$_]){
+
             $correctFrequencies{$e1}->{$e2}->[$_] += $freqs[$_];
+
           }else{
+
             $correctFrequencies{$e1}->{$e2}->[$_] = $freqs[$_];
+
           }
+
           $totalEvents += $freqs[$_];
+
         }
 
       }
   
     }
+
     close $CORR;
+
   }
 
 }
@@ -209,6 +226,10 @@ sub printPairs(){
 
   }
 
+  #        name      event 1 backtrace             event 2 backtrace 
+  #output: pair<num> 0xabc:0x987:0x123:0x111:0xfff 0xabc:0x187:0x222:0x211:0xfff 0.56
+  #                                          ^library address              ^library address
+  #        note: scanned events should be normalized using formatBT 
 
 }
 
