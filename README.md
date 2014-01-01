@@ -88,5 +88,5 @@ TODO: Write this section
 Further Reading
 ---------------
 The algorithms implemented in this system were first described in a "Cooperative Empirical Failure Avoidance for 
-Multithreaded Programs" (http://dl.acm.org/citation.cfm?id=2451121) and later in Chapter 6 of Brandon Lucia's PhD
+Multithreaded Programs" (http://dl.acm.org/citation.cfm?id=2451121) and later in Chapter 7 of Brandon Lucia's PhD
 dissertation (https://digital.lib.washington.edu/dspace/bitstream/handle/1773/23483/Lucia_washington_0250E_11953.pdf?sequence=1)
