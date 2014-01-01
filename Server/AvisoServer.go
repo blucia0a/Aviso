@@ -402,9 +402,9 @@ func updateCorrectRunModel(modelUpdate *[]*avisoevent.Events, oldmodel *avisomod
 
 	model := avisomodel.GenerateCorrectRunModel(fnames, oldmodel)
 
-	for i := range fnames {
-		os.Remove(fnames[i])
-	}
+	//for i := range fnames {
+		//os.Remove(fnames[i])
+	//}
 
 	return model
 

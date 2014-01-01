@@ -162,7 +162,7 @@ void sendRPB( ){
 
 void *watcherFn(void *v){
 
-  sleep( 5 );
+  //sleep( 5 );
   pthread_mutex_lock(&correctRunFileLock);
 
   //fprintf(correctRunFile, "\n{\"time\" : 0,\"thread\" : 0, \"backtrace\" : [\"(nil)\",\"(nil)\",\"(nil)\",\"(nil)\",\"(nil)\"]} ]\n");
