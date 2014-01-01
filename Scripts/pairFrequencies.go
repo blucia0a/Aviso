@@ -10,5 +10,5 @@ func main() {
 
   reader := bufio.NewReader(os.Stdin)
   input,_ := reader.ReadString('\n')
-  fmt.Println("FUCK: %s\n",input)
+
 }

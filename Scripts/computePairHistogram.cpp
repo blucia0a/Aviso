@@ -32,10 +32,9 @@ bool done = false;
 pthread_mutex_t gLock = PTHREAD_MUTEX_INITIALIZER;
 
 pthread_rwlock_t histoLock;
+
 /*Read lock histo to find your bin. Write lock it to create a new bin*/
 hash_map< string, hash_map<string, vector<unsigned long> > > histo;
-
-
 
 class Event{
 
@@ -99,14 +98,22 @@ unsigned long normalizeAddr(char *a){
   }else{
     return ad;
   }
+
 }
 
 Event *lineToEvent(string s){
 
+  /*Create events from the lines in the trace*/
+  /*Events contain a thread id and BTLEN addresses*/
+
   Event *newE = new Event();  
+
   char *str_orig = (char *)s.c_str();
+
   char *str = strstr(str_orig,":");
+
   unsigned long thread = atoi((s.substr(0, str - str_orig)).c_str());
+
   newE->thread = thread;
 
   char *add;  
@@ -122,7 +129,9 @@ Event *lineToEvent(string s){
     unsigned long aq = normalizeAddr(add);
     newE->bt.push_back( aq );
     //free(add);
+
   }
+
   while( newE->bt.size() < BTLEN ){
     newE->bt.push_back(0);
   }
@@ -280,6 +289,7 @@ std::vector<std::string> split(const std::string &s, char delim) {
 
 void deserializeFromFile( char *fname ){
 
+  /*This deserializes an e1 e2 f1 f2 f3 ... f<thresh> histogram*/
   ifstream f( fname );     
   string input_line;
 
@@ -291,7 +301,8 @@ void deserializeFromFile( char *fname ){
 
     std::vector<std::string> toks = split(input_line, ' ');
     std::vector<std::string>::iterator i = toks.begin();
-   
+  
+    /*skip the two events*/ 
     i++;
     i++;
 
@@ -325,11 +336,11 @@ int main(int argc, char *argv[]){
 
   pthread_t threads[NUM_THREADS];
   for(int i = 0; i < NUM_THREADS; i++){
-    pthread_create(&(threads[i]),NULL,runner,(void *)i);
+    pthread_create(&(threads[i]), NULL, runner, (void *)i);
   }
   
   for(int i = 0; i < NUM_THREADS; i++){
-    pthread_join(threads[i],NULL);
+    pthread_join(threads[i], NULL);
   }
 
   for( hash_map<string, hash_map<string, vector<unsigned long> > >::iterator it = histo.begin();

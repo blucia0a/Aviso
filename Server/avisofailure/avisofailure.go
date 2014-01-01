@@ -3,11 +3,9 @@ package avisofailure
 import (
         "bytes"
         "fmt"
-        //"os"
-        "io/ioutil"
         "../fsm"
         "../avisoevent"
-        "../avisoexternal"
+        "../avisoscript"
         "../distribution"
        )
 
@@ -40,15 +38,27 @@ func NewFailure(events *avisoevent.Events) Failure{
 
   }
 
-  tmpFile,_ := ioutil.TempFile(".","aviso")
-  fmt.Fprintf(tmpFile,"%v",string(buffer.Bytes()))
-  tmpFile.Close()
-  fmt.Println("generateFSMs's RPB is in ",tmpFile.Name())
+  //tmpFile,_ := ioutil.TempFile(".","aviso")
+  //fmt.Fprintf(tmpFile,"%v",string(buffer.Bytes()))
+  //tmpFile.Close()
+  //fmt.Println("generateFSMs's RPB is in ",tmpFile.Name())
 
   /*Generate a set of FSM descriptors from the temp file*/
-  f.Fsms = avisoexternal.GenerateFSMs(tmpFile.Name())
+  //f.Fsms = avisoexternal.GenerateFSMs(tmpFile.Name())
 
   //os.Remove(tmpFile.Name())
+
+  histo := avisoscript.ProcessEvents(events)
+  fsmpairs := avisoscript.PrintPairs(histo)
+  f.Fsms = make( fsm.Fsmlist, len(fsmpairs) )
+
+  for q := range fsmpairs{
+
+    tmpFsm := fmt.Sprintf("pair%d %s 0.25",q,fsmpairs[q])
+    f.Fsms[q] = fsm.NewFsm(tmpFsm)
+
+  }
+
 
   return f
 

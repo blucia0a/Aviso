@@ -7,6 +7,7 @@ import (
          "sort"
          "errors"
          "strings"
+         "strconv"
        )
 
 
@@ -21,7 +22,6 @@ type Events []*Event;
 type ByTime struct{ Events }
 
 func (s ByTime) Less(i, j int) bool { return s.Events[i].Time < s.Events[j].Time }
-
 func (s Events) Len() int { return len(s) }
 func (s Events) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 
@@ -30,7 +30,6 @@ func RpbStringToEvents(s string) (Events,error){
 
   buf := bytes.NewBufferString("")
   fmt.Fprintf(buf,"[ %s \n {\"time\" : 0,\"thread\" : 0, \"backtrace\" : [\"(nil)\",\"(nil)\",\"(nil)\",\"(nil)\",\"(nil)\"]} ]",s)
-  //var b []byte = []byte(buf.Bytes())
   var events Events
 
   err := json.Unmarshal(buf.Bytes(),&events);
@@ -50,6 +49,41 @@ func RpbStringToEvents(s string) (Events,error){
 
 }
 
+
+func normalizeAddr(adStr string) string{
+
+  var ad uint64
+  if strings.Contains(adStr, "(nil)"){
+
+    return "0x0"
+
+  }else{
+
+    adi,_ := strconv.ParseUint(adStr,0,64)
+    ad = uint64(adi)
+    if ad > 0x700000000000 {
+
+      return "0xffffffffffffffff"
+
+    }else{
+
+      return fmt.Sprintf("0x%x",ad)
+
+    }
+
+  }
+  return "0x0"
+
+}
+
+func NormalizeAddrs(e *Event) {
+
+  for i := range((*e).Backtrace){
+    (*e).Backtrace[i] = normalizeAddr((*e).Backtrace[i])
+  }
+
+}
+
 func EventToString(e *Event) string{
   buf := bytes.NewBufferString("")
   fmt.Fprintf(buf,"%v",e.Thread)
@@ -58,6 +92,8 @@ func EventToString(e *Event) string{
   }
   return string(buf.Bytes())
 }
+
+
 
 func EventBacktraceString(e *Event) string{
   buf := bytes.NewBufferString("")
@@ -71,5 +107,8 @@ func EventBacktraceString(e *Event) string{
   return strings.Replace(string(buf.Bytes()), "(nil)", "0x0", -1)
 }
 
-
+/*Normalizes addresses -- (nil) becomes 0x0
+  TODO: find library addresses more reliably
+  >0x700000000000  becomes 0xffffffffffffffff;
+*/
 /*End Event structures and sorting code */
