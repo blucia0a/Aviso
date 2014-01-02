@@ -5,7 +5,7 @@ import (
         "fmt"
         "../fsm"
         "../avisoevent"
-        "../avisoscript"
+        //"../avisoscript"
         "../distribution"
        )
 
@@ -48,8 +48,8 @@ func NewFailure(events *avisoevent.Events) Failure{
 
   //os.Remove(tmpFile.Name())
 
-  histo := avisoscript.ProcessEvents(events)
-  fsmpairs := avisoscript.PrintPairs(histo)
+  histo := events.EventsToPairFreqs()
+  fsmpairs := histo.PairStrings()
   f.Fsms = make( fsm.Fsmlist, len(fsmpairs) )
 
   for q := range fsmpairs{

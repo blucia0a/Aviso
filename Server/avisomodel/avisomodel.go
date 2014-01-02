@@ -44,6 +44,48 @@ type Model struct{
 
 }
 
+func (model *Model)AddCorrectRunToModel( modelUpdate *avisoevent.Events ) {
+
+  if model.pairs == nil{
+    model.pairs = make(map[string]map[string][]uint)
+  }
+
+  var howmany uint = 0
+  var updatePairs avisoevent.EventPairFreqs = (*modelUpdate).EventsToPairFreqs()
+
+  for first := range updatePairs{
+
+    for second := range updatePairs[ first ]{
+
+      if _,ok := model.pairs[ first ]; !ok{
+
+        model.pairs[ first ] = make(map[string][]uint)
+
+      }
+
+      if _,ok := model.pairs[ first ][ second ]; !ok{
+
+        model.pairs[ first ][ second ] = make([]uint,len(updatePairs[ first ][ second ]))
+
+      }
+
+
+      //TODO: iterate over range of frequencies, adding them from the update pairs to the model
+      for f := range updatePairs[ first ][ second ] {
+
+        model.pairs[ first ][ second ][f] += updatePairs[first][second][f]
+        model.totalEvents += updatePairs[first][second][f]
+
+      }
+      howmany++
+
+    }
+
+  }
+  fmt.Printf("Correct Run updated %u pairs\n",howmany)
+}
+
+
 func GenerateCorrectRunModel( newModelFile []string, oldmodel *Model ) *Model{
 
   fmt.Println("Running", avisoglobal.CorrGen, avisoglobal.CorrectModel, strings.Join(newModelFile," "))

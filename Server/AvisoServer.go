@@ -382,6 +382,13 @@ func dealFSMs(rpbDealChan chan avisomsgs.FailureClassUpdate) {
 
 func updateCorrectRunModel(modelUpdate *[]*avisoevent.Events, oldmodel *avisomodel.Model) *avisomodel.Model {
 
+
+	for i := range *modelUpdate {
+          oldmodel.AddCorrectRunToModel( (*modelUpdate)[i] )
+        }
+        return oldmodel
+
+/*
 	var fnames []string
 	for i := range *modelUpdate {
 
@@ -401,12 +408,11 @@ func updateCorrectRunModel(modelUpdate *[]*avisoevent.Events, oldmodel *avisomod
 	}
 
 	model := avisomodel.GenerateCorrectRunModel(fnames, oldmodel)
-
+*/
 	//for i := range fnames {
 		//os.Remove(fnames[i])
 	//}
 
-	return model
 
 }
 
@@ -436,7 +442,7 @@ func rpbManager() {
 	var correctRuns []*avisoevent.Events = make([]*avisoevent.Events, maxCorrectRuns)
 	var model *avisomodel.Model = new(avisomodel.Model)
 
-	model = updateCorrectRunModel(&correctRuns, model)
+	//model = updateCorrectRunModel(&correctRuns, model)
 
 	/*Go off an asynchronously dole out FSMs to starting instances*/
 	go dealFSMs(rpbDealChan)
@@ -479,17 +485,17 @@ func rpbManager() {
 
 			/*rpbMsg.isFailure == false*/
 			/*This is a correct run's RPB!*/
-			fmt.Println("[AVISO] Updating the model with a correct run RPB")
 			correctRuns[curCorrectRun] = rpbMsg.Rpb
 			curCorrectRun++
 
 			if curCorrectRun >= maxCorrectRuns {
 
+			        fmt.Println("[AVISO] Updating the model with %v correct run RPBs",maxCorrectRuns)
 				model = updateCorrectRunModel(&correctRuns, model)
 				curCorrectRun = 0
+			        fmt.Println("[AVISO] Done updating the model with a correct run RPB")
 
 			}
-			fmt.Println("[AVISO] Done updating the model with a correct run RPB")
 
 		}
 

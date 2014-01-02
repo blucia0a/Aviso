@@ -19,6 +19,9 @@ type Event struct{
 }
 
 type Events []*Event;
+type EventPairFreqs map[string]map[string][]uint
+
+
 type ByTime struct{ Events }
 
 func (s ByTime) Less(i, j int) bool { return s.Events[i].Time < s.Events[j].Time }
@@ -106,6 +109,103 @@ func EventBacktraceString(e *Event) string{
   }
   return strings.Replace(string(buf.Bytes()), "(nil)", "0x0", -1)
 }
+
+/*The input is a *Events -- a list of events*/
+/*The output should be a list like
+  event1 event2 freq1 freq2 freq3 freq4 ... freq<thresh>
+*/
+func (events *Events) EventsToPairFreqs() EventPairFreqs{
+
+  var THRESHOLD int = 10
+
+  for i := range(*events) {
+    NormalizeAddrs((*events)[i])
+  }
+
+  histo := make(map[string]map[string][]uint)
+
+  for i := 0; i < len(*events); i++ {
+
+    for j := i; j < i + THRESHOLD && j < len(*events); j++ {
+
+      var fst *Event = (*events)[i]
+      var snd *Event = (*events)[j]
+
+      if fst.Thread != snd.Thread{
+
+        var fString string = EventBacktraceString(fst)
+        var sString string = EventBacktraceString(snd)
+        var found bool = false
+
+        if _,ok := histo[fString]; ok{
+
+          if _,ok2 := histo[fString][sString]; ok2{
+
+            found = true
+            if j - i < THRESHOLD {
+              histo[fString][sString][j - i]++
+            }
+
+          }
+
+        }
+
+        if !found {
+
+          if _,ok := histo[fString]; !ok{
+
+            histo[fString] = make(map[string][]uint)
+
+          }
+
+          if _,ok := histo[fString][sString]; !ok{
+
+            histo[fString][sString] = make([]uint,THRESHOLD)
+
+          }
+
+          if j - i < THRESHOLD {
+
+            histo[fString][sString][j - i]++
+
+          }
+
+        }
+
+      }
+
+    }
+
+  }
+
+  /*histo now contains frequencies of each pair's occurrence within each of the
+   * <THRESHOLD> ranges evaluated*/
+  return histo
+
+}
+
+func (histo EventPairFreqs) PairStrings() []string{
+
+  uniq := make(map[string]bool)
+  for fst,_ := range histo {
+
+    for snd,_ := range(histo[fst]) {
+
+      s := []string{fst,snd}
+      uniq[ strings.Join(s, " ") ] = true
+
+    }
+
+  }
+
+  var pairs []string
+  for k := range(uniq){
+    pairs = append(pairs, k)
+  }
+  return pairs
+
+}
+
 
 /*Normalizes addresses -- (nil) becomes 0x0
   TODO: find library addresses more reliably
