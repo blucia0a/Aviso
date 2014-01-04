@@ -25,10 +25,6 @@ type Elem struct{
 
 type Model struct{
 
-  elems []Elem
-
-  evts map[string]bool
-
   totalEvents uint
 
   pairs map[string]map[string][]uint
@@ -38,9 +34,49 @@ type Model struct{
  * frequencies*/
   /*failurePairs[ class ][ event1 ][ event2 ] = frequency*/
   failurePairs *[]map[string]map[string]uint
+
   numFailures uint
 
+  /*TODO: Get file from config*/
   file string
+
+}
+
+func (model *Model)SerializeToFile(  ) {
+
+  fmt.Printf("TotalEvents %d\n",model.totalEvents)
+  fmt.Printf("NumFailures %d\n",model.numFailures)
+  for fst := range model.pairs{
+
+    fmt.Printf("%s ",fst)
+    for snd := range model.pairs[fst]{
+
+      fmt.Printf("%s ",snd)
+      for i := range model.pairs[fst][snd]{
+
+        fmt.Printf("%v ",model.pairs[fst][snd][i])
+
+      }
+
+    }
+
+  }
+  fmt.Printf("\nfailurePairs\n")
+  for i := range (*model.failurePairs){
+
+    for fst := range (*model.failurePairs)[i]{
+
+      fmt.Printf("%s ",fst)
+      for snd := range (*model.failurePairs)[i][fst]{
+
+        fmt.Printf("%s %v",snd,(*model.failurePairs)[i][fst][snd])
+
+      }
+
+    }
+
+  }
+  fmt.Printf("\nendOfModel\n")
 
 }
 
@@ -219,7 +255,6 @@ func NewModel( data *string, oldModel *Model ) Model{
 
   lines := strings.Split( *data, "\n" )
   model.pairs = make(map[string]map[string][]uint)
-  model.evts = make(map[string]bool)
   for i := range lines{
 
     e := Elem{}
@@ -241,10 +276,6 @@ func NewModel( data *string, oldModel *Model ) Model{
       model.totalEvents += uint(f)
 
     }
-
-    model.elems = append(model.elems,e)
-    model.evts[ parts[0] ] = true
-    model.evts[ parts[1] ] = true
 
   }
 
