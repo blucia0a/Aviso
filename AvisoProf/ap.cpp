@@ -410,7 +410,7 @@ VOID Fini(INT32 code, VOID *v)
 {
 
   //char *pairs = getenv("APPAIRS");
-  char *freqs = getenv("APFREQS");
+  char *freqs = getenv("AVISO_PROF_OUT");
   //FILE *pairsf = NULL;
   FILE *freqsf = NULL;
   /*if( !pairs ){

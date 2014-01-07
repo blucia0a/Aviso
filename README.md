@@ -89,32 +89,27 @@ that the users of the software being Aviso-enabled do not need to think about.
 
 Running the Event Profiler
 --------------------------
-The event profiler is a little klugy, but this overview will help you to run it
-and massage the results into a form usable with the Aviso compiler.  When you
-run 'make' in the top level, you will produce AvisoProf/ap.so.  ap.so is a
-"pintool" that implements the Aviso event profiler.  You will run your program
-inside the profiler using a representative test case.  After you have done
-that, the profiler will report a list of points in the code that are events. To
-run the profiler, you should run:
+The event profiler detects events in your program and this overview will help
+you to run it and massage the results into a form usable with the Aviso
+compiler.  When you run 'make' in the top level, you will produce
+AvisoProf/ap.so.  ap.so is a "pintool" that implements the Aviso event
+profiler.  You will run your program inside the profiler using a representative
+test case.  After you have done that, the profiler will report a list of points
+in the code that are events. To run the profiler, you should run:
 
 'pin -t path/to/ap.so -- path/to/your/program your programs args'
 
-If everything went correctly during the build, this should produce a bunch of 
-output on stderr.  You can put that in a file.  Each line shows a path 
-to a source file and a line number.  Here's the klugy part that I am planning
-to fix when I have time...  You need to run 'basename' on each line of that 
-output and replace the colons that separate the filenames from the line numbers
-with spaces, instead.  If you write a script to do this, feel free to submit it
-and I'll definitely add it to the project.  That file that looks like
-
+By default, the output of the profiler goes to standard out.  Instead, you can
+set AVISO_PROF_OUT=/path/to/a/file and have the output stored there instead.
+You should run the script in AVISO_ROOT/Scripts/parse_profile.sh with the profile file as its only argument.  That will produce output on standard out.  Each line of output shows a path to a source file and a line number, like
 
 foo.c 94
 frampton.cpp 915
 cornbluth.c 875
 
-is your AVISOPOINTS file.  When you compile your program, you should specify
-AVISOPOINTS=/that/file in your environment.  The compiler pass will be looking
-for it.
+Put this output in a file.  That file is your AVISOPOINTS file.  When you
+compile your program, you should specify AVISOPOINTS=/that/file in your
+environment.  The compiler pass will be looking for it.
 
 Using the Compiler and Linking
 ------------------------------
