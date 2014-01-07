@@ -25,6 +25,7 @@ import (
   "time"
 )
 
+
 func doDistributionUpdate(which uint, rank float64, failureRate float64, dist *distribution.Distribution) {
 
   scale := float64(0)
@@ -176,7 +177,7 @@ func dealFSMs(rpbDealChan chan avisomsgs.FailureClassUpdate) {
     }
 
     val := rand.Intn(numFSMTrials)
-    if val != 1 && !avisoglobal.BaselineOnly {
+    if val != 1 {
 
       //useFSM++
       //if( useFSM >= numFSMTrials ){ useFSM = 0 }
@@ -417,7 +418,14 @@ func rpbManager() {
   maxCorrectRuns := 1
   curCorrectRun := 0
 
-  var model *avisomodel.Model = new(avisomodel.Model)
+  /*Model is created here, but not initialized until the first correct run RPB
+  * comes through*/
+  var model *avisomodel.Model
+  var s string = ""
+  mo := avisomodel.NewModel(&s,nil)
+  model = &mo
+
+  model.SetFile( avisoglobal.CorrectModelFile )
 
   /*Go off an asynchronously dole out FSMs to starting instances*/
   go dealFSMs(rpbDealChan)
@@ -466,6 +474,7 @@ func rpbManager() {
       model.AddCorrectRunToModel( rpbMsg.Rpb )
       fmt.Println("[AVISO] Done updating the model with a correct run RPB")
 
+      /*Every 10 runs, serialize the model to a file -- currently, this goes to STDOUT*/
       if curCorrectRun >= maxCorrectRuns {
 
         model.SerializeToFile()
@@ -536,7 +545,7 @@ func statsManager(doneChan chan bool) {
   var baselineFailures uint = 0
   var baselineSuccesses uint = 0
 
-  plot, _ := os.Create(avisoglobal.PlotFile)
+  //plot, _ := os.Create(avisoglobal.PlotFile)
 
   var chk int = 0
 
@@ -568,11 +577,11 @@ func statsManager(doneChan chan bool) {
           baselineSuccesses++
         }
 
-        fmt.Fprintf(plot, "%v %v %v %v %v\n", totalruns,
+        /*fmt.Fprintf(plot, "%v %v %v %v %v\n", totalruns,
                                                                       baselineFailures,
                                                                       baselineSuccesses,
                                                                       anyFsmFailures,
-                                                                      anyFsmSuccesses)
+                                                                      anyFsmSuccesses)*/
         continue
 
       }
@@ -582,11 +591,11 @@ func statsManager(doneChan chan bool) {
       } else {
         anyFsmSuccesses++
       }
-      fmt.Fprintf(plot, "%v %v %v %v %v\n", totalruns,
+      /*fmt.Fprintf(plot, "%v %v %v %v %v\n", totalruns,
                                                               baselineFailures,
                                                               baselineSuccesses,
                                                               anyFsmFailures,
-                                                              anyFsmSuccesses)
+                                                              anyFsmSuccesses)*/
 
       activeFsms := strings.Split(t.Fsm, ";")
 
@@ -770,7 +779,7 @@ func tickHandler(w http.ResponseWriter, r *http.Request) {
 
 func channelTimeout(c chan bool) {
 
-  time.Sleep(time.Second)
+  time.Sleep(time.Second * 2)
   c <- true
 
 }
@@ -782,7 +791,7 @@ func startHandler(w http.ResponseWriter, r *http.Request) {
   go channelTimeout(c)
   select {
   case <-c:
-    fmt.Println("Couldn't read from fsm dealer!  Continuing fsmless\n")
+    fmt.Println("[AVISO] Couldn't read from fsm dealer!  Continuing fsmless\n")
     return
   case fsm := <-avisoglobal.FsmChan:
     fmt.Fprintf(w, "%s\n", fsm)
@@ -804,17 +813,11 @@ func init() {
 func main() {
 
   var correctModelFlag = flag.String("model", "correct.histo", "Specify the path to the correct run model")
-  var fsmGenFlag = flag.String("fsmgen", "../Scripts/generate_fsms.sh", "Specify the path to the fsm generator")
-  var corrGenFlag = flag.String("corrgen", "../Scripts/generate_correct_model.sh", "Specify the path to the correct model generator")
-  var ratePlotFlag = flag.String("rateplot", "current.plots", "Specify where Aviso should dump the plots of failures vs. runs")
-  var baselineOnlyFlag = flag.String("baselineonly", "0", "True if Aviso should never send any FSM (for experiments)")
+  var portFlag = flag.String("port", ":22221", "Specify the port to run the server on")
 
   flag.Parse()
-  avisoglobal.FsmGen = *fsmGenFlag
-  avisoglobal.CorrGen = *corrGenFlag
-  avisoglobal.CorrectModel = *correctModelFlag
-  avisoglobal.PlotFile = *ratePlotFlag
-  avisoglobal.BaselineOnly = (*baselineOnlyFlag) == "1"
+  avisoglobal.CorrectModelFile = *correctModelFlag
+  avisoglobal.ServerPortString = *portFlag
 
   var done chan bool = make(chan bool)
 
@@ -823,7 +826,7 @@ func main() {
 
   fmt.Println("[AVISOSERVER Version 0 - Brandon Lucia - 2012]")
 
-  log.Fatal(http.ListenAndServe(":22221", nil))
+  log.Fatal(http.ListenAndServe(avisoglobal.ServerPortString, nil))
 
   fmt.Println("[AVISOSERVER Shutting Down!]")
 

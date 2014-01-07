@@ -42,9 +42,6 @@ var FsmChan = make(chan string)
 
 
 /*These global variables get set by main when it processes flags*/
-var FsmGen = ""
-var CorrGen = ""
-var CorrectModel = ""
-var PlotFile = ""
-var BaselineOnly bool = false
+var CorrectModelFile = ""
+var ServerPortString = ""
 

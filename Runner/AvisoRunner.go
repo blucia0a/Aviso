@@ -166,7 +166,7 @@ func main(){
   //fmt.Println("<<Exity: ",cmd.ProcessState.Exited()," ",cmd.ProcessState.Success())
   //if !cmd.ProcessState.Exited() || !cmd.ProcessState.Success() {
 
-  if err != nil && err.Error() != "" && (strings.Contains(err.Error(),"signal 6") || strings.Contains(err.Error(),"signal 11")){
+  if err != nil && err.Error() != "" && (strings.Contains(err.Error(),"signal 6") || strings.Contains(err.Error(),"signal 11") || strings.Contains(err.Error(),"segmentation fault") || strings.Contains(err.Error(),"core dumped")){
     failed = true
   }
 

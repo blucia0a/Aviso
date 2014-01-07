@@ -5,11 +5,12 @@ import ( "strings"
          "fmt"
          "os"
          "log"
-         "os/exec"
-         "../avisoglobal"
+         "bytes"
+         "bufio"
          "../avisofailure"
          "../avisoevent"
-         "../fsm" )
+         "../fsm" 
+       )
 
 var thresh uint = 10
 type Freq uint
@@ -39,44 +40,268 @@ type Model struct{
 
   /*TODO: Get file from config*/
   file string
+  OutFile *os.File
+
+}
+
+func (model *Model)SetFile( fname string ){
+
+  model.file = fname
+
+  file, err := os.Open(fname) // For read access.
+
+  if err != nil {
+
+    log.Fatal(err)
+
+  }
+
+  model.DeserializeFromFile(file)
+
+  file.Close()
+
+
+
+}
+
+func (model *Model)DeserializeFromFile( file *os.File ) {
+
+  section := 0
+
+  scanner := bufio.NewScanner(file)
+
+  for scanner.Scan() {
+
+    line := scanner.Text()
+    if line == ""{ continue }
+
+    if strings.Contains(line,"TotalEvents"){
+
+      var junk string
+      var te uint
+      _,err := fmt.Sscanln(line, &junk, &te)
+      if err == nil{
+        fmt.Printf("[Aviso] Model contains %d events\n",te)
+      }else{
+        log.Fatal(err)
+      }
+      model.totalEvents = te
+
+
+      if section != 0{
+
+        log.Fatal("[AVISO] Error Deserializing Model - Saw TotalEvents when section was not 0")
+
+      }else{
+
+        section = 1
+        continue
+
+      }
+
+    }
+
+    if strings.Contains(line,"NumFailures"){
+
+      var junk string
+      _,err := fmt.Sscanln(line, &junk, &(model.numFailures))
+      if err == nil{
+        fmt.Printf("[AVISO] Model contained %d Failures\n",model.numFailures)
+      }else{
+        log.Fatal(err)
+      }
+
+      if section != 1{
+
+        log.Fatal("[AVISO] Error Deserializing Model - Saw NumFailurs when section was not 1")
+
+      }else{
+
+        section = 2
+        continue
+
+      }
+
+    }
+
+    if strings.Contains(line,"failurePairs"){
+
+      if section != 2{
+
+        log.Fatal("[AVISO] Error Deserializing Model - Saw failurePairs when section was not 2")
+
+      }else{
+
+        section = 3
+        continue
+
+      }
+
+    }
+
+    if strings.Contains(line,"endOfModel"){
+
+      if section != 3{
+
+        log.Fatal("[AVISO] Error Deserializing Model - Saw endOfModel when section was not 3")
+
+      }else{
+
+        file.Close()
+        return
+
+      }
+
+
+    }
+
+
+    /*Not a section header.  We're in a section*/
+    if section == 2{
+
+      var first, second string
+      var freqs []uint
+      var strs []string = strings.Split(line," ")
+      first = strs[0]
+      second = strs[1]
+      for i := range(strs){
+
+        if i == 0 || i == 1{
+
+          continue
+
+        }
+
+        s,_ := strconv.Atoi(strs[i])
+        freqs = append(freqs,uint(s))
+
+      }
+
+      /*section 2 is the correct pairs section*/
+      model.addCorrectPairWithFreqs(first,second,freqs)
+
+    }
+
+    /*Not a section header.  We're in a section*/
+    if section == 3{
+
+      var first, second string
+      var class, freq uint
+      /*section 2 is the correct pairs section*/
+      ret,err := fmt.Sscanln(line, &class, &first, &second, &freq)
+      if err != nil { log.Fatal(err) }
+      if ret == 4{
+        model.addPairToModel(class,first,second,freq)
+      }
+
+    }
+
+  }
 
 }
 
 func (model *Model)SerializeToFile(  ) {
 
-  fmt.Printf("TotalEvents %d\n",model.totalEvents)
-  fmt.Printf("NumFailures %d\n",model.numFailures)
-  for fst := range model.pairs{
+  outfile, err := os.Create(model.file) // For read access.
 
-    fmt.Printf("%s ",fst)
-    for snd := range model.pairs[fst]{
+  if err != nil {
 
-      fmt.Printf("%s ",snd)
-      for i := range model.pairs[fst][snd]{
+    log.Fatal(err)
 
-        fmt.Printf("%v ",model.pairs[fst][snd][i])
+  }
+
+  if model == nil{
+
+    return
+
+  }
+
+  f := bytes.NewBufferString("")
+  fmt.Fprintf(f,"TotalEvents %d\n",model.totalEvents)
+  fmt.Fprintf(f,"NumFailures %d\n",model.numFailures)
+
+  if model.pairs != nil{
+
+    for fst := range model.pairs{
+
+      for snd := range model.pairs[fst]{
+
+        fmt.Fprintf(f,"%s ",fst)
+        fmt.Fprintf(f,"%s ",snd)
+        for i := range model.pairs[fst][snd]{
+
+          fmt.Fprintf(f,"%v ",model.pairs[fst][snd][i])
+
+        }
+        fmt.Fprintf(f,"\n")
 
       }
 
     }
 
   }
-  fmt.Printf("\nfailurePairs\n")
-  for i := range (*model.failurePairs){
 
-    for fst := range (*model.failurePairs)[i]{
+  fmt.Fprintf(f,"\nfailurePairs\n")
+  if (*model.failurePairs) != nil{
+    for i := range (*model.failurePairs){
 
-      fmt.Printf("%s ",fst)
-      for snd := range (*model.failurePairs)[i][fst]{
+      if len((*model.failurePairs)[i]) > 0{
 
-        fmt.Printf("%s %v",snd,(*model.failurePairs)[i][fst][snd])
+        for fst := range (*model.failurePairs)[i]{
+
+
+          for snd := range (*model.failurePairs)[i][fst]{
+
+            /*class*/
+            fmt.Fprintf(f,"%d ",i)
+
+            /*pair first*/
+            fmt.Fprintf(f,"%s ",fst)
+
+            /*pair second and freq*/
+            fmt.Fprintf(f,"%s %v",snd,(*model.failurePairs)[i][fst][snd])
+
+            fmt.Fprintf(f,"\n")
+
+          }
+
+        }
 
       }
 
     }
 
   }
-  fmt.Printf("\nendOfModel\n")
+
+  fmt.Fprintf(f,"\nendOfModel\n")
+  outfile.WriteString( string(f.Bytes()) )
+
+  outfile.Close()
+
+}
+
+func (model *Model)addCorrectPairWithFreqs(first string, second string, freqs []uint){
+
+      if _,ok := model.pairs[ first ]; !ok{
+
+        model.pairs[ first ] = make(map[string][]uint)
+
+      }
+
+      if _,ok := model.pairs[ first ][ second ]; !ok{
+
+        model.pairs[ first ][ second ] = make([]uint,len(freqs))
+
+      }
+
+
+      //TODO: iterate over range of frequencies, adding them from the update pairs to the model
+      for f := range freqs {
+
+        model.pairs[ first ][ second ][f] += freqs[f]
+        model.totalEvents += freqs[f]
+
+      }
 
 }
 
@@ -93,66 +318,32 @@ func (model *Model)AddCorrectRunToModel( modelUpdate *avisoevent.Events ) {
 
     for second := range updatePairs[ first ]{
 
-      if _,ok := model.pairs[ first ]; !ok{
-
-        model.pairs[ first ] = make(map[string][]uint)
-
-      }
-
-      if _,ok := model.pairs[ first ][ second ]; !ok{
-
-        model.pairs[ first ][ second ] = make([]uint,len(updatePairs[ first ][ second ]))
-
-      }
-
-
-      //TODO: iterate over range of frequencies, adding them from the update pairs to the model
-      for f := range updatePairs[ first ][ second ] {
-
-        model.pairs[ first ][ second ][f] += updatePairs[first][second][f]
-        model.totalEvents += updatePairs[first][second][f]
-
-      }
+      model.addCorrectPairWithFreqs(first,second,updatePairs[first][second])
       howmany++
 
     }
 
   }
+
   fmt.Printf("Correct Run updated %u pairs\n",howmany)
-}
-
-
-func GenerateCorrectRunModel( newModelFile []string, oldmodel *Model ) *Model{
-
-  fmt.Println("Running", avisoglobal.CorrGen, avisoglobal.CorrectModel, strings.Join(newModelFile," "))
-
-  arg := ""+" "+avisoglobal.CorrectModel+" "+strings.Join(newModelFile," ")+""
-  arg = strings.Replace( arg, "\n", "", -1 )
-
-  out,err := exec.Command(avisoglobal.CorrGen, arg ).Output()
-  if( err != nil ){
-    log.Println(err)
-  }
-
-  s := string(out)
-
-  m := NewModel( &s, oldmodel )
-
-  os.Remove( avisoglobal.CorrectModel )
-  f,_ := os.Create( avisoglobal.CorrectModel )
-  fmt.Fprintf(f, "%v", string(out) )
-  f.Close()
-
-  return &m
 
 }
+
+
 
 
 func (m *Model) addPairToModel( class uint, e1 string, e2 string, f uint ){
 
-  //log.Printf( "PUTTING: ((%s)) ((%s))\n", e1, e2 )
-  if _,ok := (*m.failurePairs)[ class ][e1]; !ok{
-    (*m.failurePairs)[ class ][e1] = make(map[string]uint)
+  //log.Printf( "PUTTING: ((%d)) ((%s)) ((%s)) ((%d)\n", class, e1, e2, f )
+  if (*m.failurePairs) == nil{
+    (*m.failurePairs) = make([]map[string]map[string]uint,10)
+  }
+  if (*m.failurePairs)[class] == nil{
+    (*m.failurePairs)[class] = make(map[string]map[string]uint)
+  }
+  if (*m.failurePairs)[class][e1] == nil{
+    (*m.failurePairs)[class][e1] = make(map[string]uint)
+    (*m.failurePairs)[class][e1][e2] = 0
   }
 
   (*m.failurePairs)[ class ][e1][e2] += f
@@ -246,6 +437,10 @@ func NewModel( data *string, oldModel *Model ) Model{
 
   model := Model{}
 
+  model.pairs = make(map[string]map[string][]uint)
+  mo := make([]map[string]map[string]uint,10)
+  model.failurePairs = &mo
+
   if oldModel != nil{
 
     model.failurePairs = oldModel.failurePairs
@@ -253,8 +448,8 @@ func NewModel( data *string, oldModel *Model ) Model{
 
   }
 
+
   lines := strings.Split( *data, "\n" )
-  model.pairs = make(map[string]map[string][]uint)
   for i := range lines{
 
     e := Elem{}
