@@ -2,14 +2,14 @@
 #include "Applier.h"
 #include "StateMachines/StateMachine.h"
 #include "StateMachines/StateMachineFactory.h"
-#include <tr1/unordered_set>
+#include <unordered_set>
 #include <set>
 #include <dlfcn.h>
 #include <assert.h>
 
 struct pcbt {
   bool skipName;
-  std::tr1::unordered_set< Backtrace *, BTHash, LooseBTEquals> *btSet;
+  std::unordered_set< Backtrace *, BTHash, LooseBTEquals> *btSet;
   Backtrace *b;
   int i;
 };
@@ -60,7 +60,7 @@ void processPluginConfig(char *conf,void *v){
   struct pcbt pcb;
   pcb.skipName = true;
   pcb.btSet = 
-    (std::tr1::unordered_set< Backtrace *, BTHash, LooseBTEquals> *) v;
+    (std::unordered_set< Backtrace *, BTHash, LooseBTEquals> *) v;
   char buf[1024];
   memset(buf,0,1024);
   char *retf = fgets(buf,1024,f);
@@ -72,7 +72,7 @@ void processPluginConfig(char *conf,void *v){
 
 }
 
-void loadPluginConfigs(std::tr1::unordered_set< Backtrace *, BTHash, LooseBTEquals> *btSet, const char *va){
+void loadPluginConfigs(std::unordered_set< Backtrace *, BTHash, LooseBTEquals> *btSet, const char *va){
   
   char *plugins = getenv(va);
   if(plugins != NULL){

@@ -3,7 +3,7 @@
 
 #include <unistd.h>
 using std::set;
-using std::tr1::unordered_set;
+using std::unordered_set;
 
 pthread_mutex_t MachinesLock;
 set<StateMachine *> *Machines;
@@ -35,7 +35,7 @@ retry: /*The label to use to break out of the inner loop when waiting*/
   set<StateMachine *>::iterator it, et, wk;
   for(it = Machines->begin(), et = Machines->end(); it != et; it++){
     
-    volatile enum SMAction a = (*it)->run( t->bt, (int)pthread_self() );
+    volatile enum SMAction a = (*it)->run( t->bt, (unsigned long)pthread_self() );
     i++;
     switch(a){
 
@@ -84,7 +84,7 @@ retry: /*The label to use to break out of the inner loop when waiting*/
     t->numMachineStartChecks++;
     if((*fit)->isStartState(t->bt)){
       StateMachine *m = (*fit)->CreateMachine();
-      m->run(t->bt, (int)pthread_self());
+      m->run(t->bt, (unsigned long)pthread_self());
       t->numMachineStarts++;
       /*fprintf(stderr,"Thread %d just started a machine %d at %p!\n",(int)pthread_self(),i,bt->bt[0]);*/
       Machines->insert(m);

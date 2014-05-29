@@ -5,10 +5,10 @@
 #include "STQueue.h"
 #include <pthread.h>
 #include <set>
-#include <tr1/unordered_set>
+#include <unordered_set>
 
 using std::set;
-using std::tr1::unordered_set;
+using std::unordered_set;
 
 typedef struct _thread_data{
 

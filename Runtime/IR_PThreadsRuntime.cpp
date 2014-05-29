@@ -9,7 +9,7 @@
 #include <dlfcn.h>
 #include <signal.h>
 #include <string.h>
-#include <tr1/unordered_set>
+#include <unordered_set>
 #include <set>
 #include <errno.h>
 #include <assert.h>
@@ -491,7 +491,7 @@ extern "C"{
     }
 
     t->involvedBacktraces = 
-      new std::tr1::unordered_set<Backtrace *, BTHash, LooseBTEquals>();
+      new std::unordered_set<Backtrace *, BTHash, LooseBTEquals>();
     loadPluginConfigs(t->involvedBacktraces,"IR_PluginConfs");
 
   }
@@ -629,7 +629,7 @@ void GetThreadData(){
   }
 
   t->involvedBacktraces = 
-    new std::tr1::unordered_set<Backtrace *, BTHash, LooseBTEquals>();
+    new std::unordered_set<Backtrace *, BTHash, LooseBTEquals>();
   loadPluginConfigs(t->involvedBacktraces,"IR_PluginConfs");
   
 
