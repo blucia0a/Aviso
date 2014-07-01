@@ -80,14 +80,11 @@ void AvisoInstrumentBranches::TraverseInstrumentingBranches(Function &F, BasicBl
   if( visited.find( &B ) != visited.end() ){ return; }
   auto nextVisited = std::set<BasicBlock *>(visited);
   nextVisited.insert(&B);
-  
-  
-  InstrumentBranchBlock(B);
 
+  outs() << "Branch block: " << B << "\n";
   
   auto TI = B.getTerminator();
   bool doInstrument = (TI->getNumSuccessors() > 1);
-
 
   for(succ_iterator SI = succ_begin(&B), E = succ_end(&B); SI != E; ++SI){
 
@@ -95,6 +92,7 @@ void AvisoInstrumentBranches::TraverseInstrumentingBranches(Function &F, BasicBl
     if( doInstrument ){
 
       InstrumentBranchBlock(nB);
+      outs() << "Target " << nB << "\n";
 
     }
 
