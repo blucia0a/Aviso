@@ -33,7 +33,7 @@ class AvisoInstrumentBranches: public llvm::ModulePass {
 
    private:
         std::set<BasicBlock *> InstrumentedFunctions;
-        void TraverseInstrumentingBranches(Function &F, BasicBlock &B, std::set<BasicBlock *> &visited);
+        void TraverseInstrumentingBranches(Function &F, BasicBlock &B);
         void InstrumentBranchBlock(BasicBlock &B);
 
 };
