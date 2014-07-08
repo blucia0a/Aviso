@@ -71,7 +71,6 @@ void AvisoInstrumentBranches::InstrumentBranchBlock(BasicBlock &B){
   Builder.SetInsertPoint(&B,B.getFirstInsertionPt());
   Builder.CreateCall(InstFunc,"");
 
-  outs() << "[Aviso] Instrumented Block\n" << B << "\n"; 
  
 }
 
@@ -81,14 +80,12 @@ void AvisoInstrumentBranches::TraverseInstrumentingBranches(Function &F, BasicBl
   bool doInstrument = (TI->getNumSuccessors() > 1);
   if( doInstrument ){
 
-    outs() << "Branch block: " << B << "\n";
 
     for(succ_iterator SI = succ_begin(&B), E = succ_end(&B); SI != E; ++SI){
 
       BasicBlock &nB = **SI;
 
       InstrumentBranchBlock(nB);
-      outs() << "Target " << nB << "\n";
 
     } 
 
