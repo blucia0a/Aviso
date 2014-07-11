@@ -64,13 +64,26 @@ void AvisoInstrumentBranches::InstrumentBranchBlock(BasicBlock &B){
 
   Function *F = B.getParent();
   Module *M = F->getParent();
+  auto T = B.getTerminator();
+
+  PHINode *p = dyn_cast<PHINode>(T);
+  if( p != NULL ){
+    outs() << "[AVISO] WARNING: Inserting path profile call on a PHI node\n";
+  }
+  
+  LandingPadInst *lpi = dyn_cast<LandingPadInst>(T);
+  if( lpi != NULL ){
+    outs() << "[AVISO] WARNING: Inserting path profile call on a Landing Pad Inst\n";
+  }
 
   IRBuilder<> Builder( M->getContext() );
   Constant *InstFuncConst = M->getOrInsertFunction("IR_SyntheticEvent",Type::getVoidTy(M->getContext()), (Type*)0);
   Function *InstFunc = dyn_cast<Function>( InstFuncConst );
-  Builder.SetInsertPoint(&B,B.getFirstInsertionPt());
+  //Builder.SetInsertPoint(&B,B.getFirstInsertionPt());
+  Builder.SetInsertPoint(&B,T);
   Builder.CreateCall(InstFunc,"");
 
+  outs() << "[AVISO] Target Block" << B << "\n";
  
 }
 
@@ -80,7 +93,7 @@ void AvisoInstrumentBranches::TraverseInstrumentingBranches(Function &F, BasicBl
   bool doInstrument = (TI->getNumSuccessors() > 1);
   if( doInstrument ){
 
-
+    outs() << "[AVISO] Branch Block" << B << "\n";
     for(succ_iterator SI = succ_begin(&B), E = succ_end(&B); SI != E; ++SI){
 
       BasicBlock &nB = **SI;
